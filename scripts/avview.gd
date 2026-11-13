@@ -570,6 +570,60 @@ func stop_anim(reset := true) -> void:
 	_anim_run = false
 	if reset: frame = 0
 	queue_redraw()
+static var _imgs := {}
+func _img_dest(t: Texture2D, rec: Dictionary, r: Rect2, fit: int) -> Rect2:
+	var ts: Vector2 = t.get_size() * float(rec["scale"])
+	match fit:
+		1: return r
+		3:
+			var k: float = min(r.size.x / ts.x, r.size.y / ts.y)
+			return Rect2(r.position + (r.size - ts * k) * 0.5, ts * k)
+		6:
+			var k2: float = max(r.size.x / ts.x, r.size.y / ts.y)
+			return Rect2(r.position + (r.size - ts * k2) * 0.5, ts * k2)
+	return Rect2(r.position + (r.size - ts) * 0.5, ts)
+func _alpha_in(d: Dictionary, r: Rect2, fit: int, p: Vector2) -> float:
+	match d.get("kind", ""):
+		"selector":
+			for it in d["items"]:
+				if _state_match(it["state"]): return _alpha_in(it["d"], r, fit, p)
+			return 0.0
+		"layers":
+			var m := 0.0
+			for it in d["items"]: m = maxf(m, _alpha_in(it, r, fit, p))
+			return m
+		"anim":
+			if d["frames"].size() > 0: return _alpha_in(d["frames"][frame % d["frames"].size()]["d"], r, fit, p)
+			return 0.0
+		"image":
+			var rec: Dictionary = d["rec"]
+			if rec["nine"] != null and fit == 1: return 1.0
+			var t: Texture2D = rec["tex"]
+			var dest := _img_dest(t, rec, r, fit)
+			if not dest.has_point(p) or dest.size.x <= 0.0 or dest.size.y <= 0.0: return 0.0
+			var id := t.get_instance_id()
+			if not _imgs.has(id): _imgs[id] = t.get_image()
+			var img: Image = _imgs[id]
+			if img == null: return 1.0
+			var u := (p - dest.position) / dest.size
+			return img.get_pixel(clampi(int(u.x * img.get_width()), 0, img.get_width() - 1), clampi(int(u.y * img.get_height()), 0, img.get_height() - 1)).a
+		"":
+			return 0.0
+	return 1.0
+func opaque_at(p: Vector2) -> bool:
+	if not clickable or kind.ends_with("ScrollView") or kind == "ListView" or kind == "SeekBar": return true
+	var r := Rect2(Vector2.ZERO, size)
+	var is_img := kind == "ImageView" or kind == "ImageButton"
+	if bg.is_empty() and not is_img: return true
+	var al := 0.0
+	if not bg.is_empty(): al = _alpha_in(bg, r, 1, p)
+	if al <= 0.05 and is_img and not src.is_empty():
+		var st := int(a.get("scaleType", 3 if kind == "ImageView" else 5))
+		var inner := Rect2(Vector2(pd[0], pd[1]), size - Vector2(pd[0] + pd[2], pd[1] + pd[3]))
+		al = _alpha_in(src, inner, 1 if st == 1 else (6 if st == 6 else (3 if st == 3 or st == 7 else 0)), p)
+	return al > 0.05
+func _has_point(p: Vector2) -> bool:
+	return Rect2(Vector2.ZERO, size).has_point(p) and opaque_at(p)
 func _gui_input(e: InputEvent) -> void:
 	if kind == "SeekBar" and enabled:
 		if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and e.pressed or e is InputEventMouseMotion and e.button_mask & 1:

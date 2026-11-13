@@ -194,7 +194,7 @@ func _find_click(n: AView, p: Vector2) -> AView:
 		if c is AView and c.vis == 0 and c.visible:
 			var sub := _find_click(c, p)
 			if sub != null: hit = sub
-			if c.clickable and c.enabled and not c.kind.ends_with("ScrollView") and c.get_global_rect().has_point(p): hit = c
+			if c.clickable and c.enabled and not c.kind.ends_with("ScrollView") and c.get_global_rect().has_point(p) and c.opaque_at(c.get_global_transform().affine_inverse() * p): hit = c
 	return hit
 func check(name: String, ok: bool) -> void: print("TEST ", "PASS " if ok else "FAIL ", name)
 func clienttest() -> void:
