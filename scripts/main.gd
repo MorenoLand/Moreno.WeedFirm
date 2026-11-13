@@ -560,7 +560,7 @@ func tasks_refresh() -> void:
 func chalk_line(t: String, cs: String, bs: String, vs: String) -> String:
 	if t == "none": return ""
 	var info := Data.task_info(t)
-	return Assets.str_of("task_" + t) + (cs if t == "gangsters" else "") + (bs if t == "bong_all" else "") + (vs if t == "vaporize_all" else "") + "   +%dXP" % info[1]
+	return Assets.str_of("task_" + t) + (cs if t == "joints" else "") + (bs if t == "bong_all" else "") + (vs if t == "vaporize_all" else "") + "   +%dXP" % info[1]
 func _weed_scrolled(v: AView) -> void:
 	var rw: float = ui.view("room_holder").size.x - weed.size.x
 	var ww: float = ui.view("weed_holder").size.x - weed.size.x
