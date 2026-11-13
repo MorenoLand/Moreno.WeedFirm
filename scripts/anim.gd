@@ -64,7 +64,9 @@ func _restore(a: Dictionary) -> void:
 	v.modulate.a = a["alpha"]
 	v.rotation_degrees = a["rot"]
 	v.pivot_offset = a["piv"]
-func _frac(s: Variant) -> float: return float(str(s).rstrip("%"))
+func _pv(s: Variant, size: float) -> float:
+	var t := str(s)
+	return float(t.rstrip("%")) * size if t.ends_with("%") else float(t)
 func _process(dt: float) -> void:
 	var fin := []
 	for a in _act:
@@ -82,7 +84,7 @@ func _process(dt: float) -> void:
 		a["t"] += dt * 1000.0
 		var el: float = a["t"]
 		var cur := {"t": null, "s": null, "a": null, "r": null}
-		var piv := Vector2(0.5, 0.5)
+		var piv: Vector2 = v.size * 0.5
 		for t in a["tr"]:
 			var at: Dictionary = t["a"]
 			var key := ""
@@ -102,13 +104,13 @@ func _process(dt: float) -> void:
 				"t": cur[key] = Vector2(lerp(float(at.get("fromXDelta", 0)), float(at.get("toXDelta", 0)), e), lerp(float(at.get("fromYDelta", 0)), float(at.get("toYDelta", 0)), e))
 				"s":
 					cur[key] = Vector2(lerp(float(at.get("fromXScale", 1)), float(at.get("toXScale", 1)), e), lerp(float(at.get("fromYScale", 1)), float(at.get("toYScale", 1)), e))
-					piv = Vector2(_frac(at.get("pivotX", "0.5%")), _frac(at.get("pivotY", "0.5%")))
+					piv = Vector2(_pv(at.get("pivotX", "0.5%"), v.size.x), _pv(at.get("pivotY", "0.5%"), v.size.y))
 				"a": cur[key] = lerp(float(at.get("fromAlpha", 1)), float(at.get("toAlpha", 1)), e)
 				"r":
 					cur[key] = lerp(float(at.get("fromDegrees", 0)), float(at.get("toDegrees", 0)), e)
-					piv = Vector2(_frac(at.get("pivotX", "0.5%")), _frac(at.get("pivotY", "0.5%")))
+					piv = Vector2(_pv(at.get("pivotX", "0.5%"), v.size.x), _pv(at.get("pivotY", "0.5%"), v.size.y))
 		v.position = a["pos"] + (cur["t"] if cur["t"] != null else Vector2.ZERO)
-		v.pivot_offset = v.size * piv
+		v.pivot_offset = piv
 		v.scale = cur["s"] if cur["s"] != null else Vector2.ONE
 		v.modulate.a = float(a["alpha"]) * (cur["a"] if cur["a"] != null else 1.0)
 		v.rotation_degrees = cur["r"] if cur["r"] != null else 0.0
