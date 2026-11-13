@@ -1,5 +1,3 @@
-# Godot client for playing a free Android farming game on desktop, Linux and web
-
 An unofficial, asset-free Godot/Redot client for *Weed Firm: RePlanted*, playable without an emulator on desktop, Linux and the web (WASM).
 
 Fan project, not affiliated with the original developers. See [NOTICE.md](NOTICE.md). No game content is distributed here; you supply your own copy of the free APK.
