@@ -1,9 +1,11 @@
 extends Node
-const PATH := "user://save.json"
+var path := "user://save.json"
 var d := {}
 var _t: Timer
 func _ready() -> void:
-	var t := FileAccess.get_file_as_string(PATH)
+	for k in ["WF_SEED", "WF_TEST", "WF_UITEST", "WF_CLIENTS", "WF_ACT", "WF_SHOT"]:
+		if OS.get_environment(k) != "": path = "user://test_save.json"
+	var t := FileAccess.get_file_as_string(path)
 	if t != "":
 		var j = JSON.parse_string(t)
 		if j is Dictionary: d = j
@@ -26,7 +28,7 @@ func remove(k: String) -> void:
 	if _t != null and _t.is_inside_tree(): _t.start()
 func now() -> int: return int(Time.get_unix_time_from_system() * 1000.0)
 func flush() -> void:
-	var f := FileAccess.open(PATH, FileAccess.WRITE)
+	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f != null: f.store_string(JSON.stringify(d))
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT: flush()

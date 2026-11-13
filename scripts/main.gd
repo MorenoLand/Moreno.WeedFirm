@@ -221,7 +221,7 @@ func selftest() -> void:
 	await get_tree().create_timer(3.0).timeout
 	close_all()
 	Save.flush()
-	var t := FileAccess.get_file_as_string(Save.PATH)
+	var t := FileAccess.get_file_as_string(Save.path)
 	check("save persisted", t.contains("\"cash\""))
 func _probe(n: Node, p: Vector2) -> void:
 	if n is AView and n.is_visible_in_tree() and n.get_global_rect().has_point(p):

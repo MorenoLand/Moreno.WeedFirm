@@ -54,6 +54,15 @@ func setup(k: String, attrs: Dictionary, ctx: RefCounted) -> void:
 	mg = PackedFloat32Array([_dp(a.get("layout_marginLeft", mm)), _dp(a.get("layout_marginTop", mm)), _dp(a.get("layout_marginRight", mm)), _dp(a.get("layout_marginBottom", mm))])
 	var pp := _dp(a.get("padding", 0))
 	pd = PackedFloat32Array([_dp(a.get("paddingLeft", pp)), _dp(a.get("paddingTop", pp)), _dp(a.get("paddingRight", pp)), _dp(a.get("paddingBottom", pp))])
+	bg = Assets.drawable(a.get("background"))
+	var np := _nine_rec(bg)
+	if not np.is_empty() and np["nine"] != null:
+		var pad: Array = np["nine"]["pad"]
+		var sc: float = np["scale"]
+		var keys := ["paddingLeft", "paddingTop", "paddingRight", "paddingBottom"]
+		var src_i := [0, 2, 1, 3]
+		for i in 4:
+			if not a.has(keys[i]) and not a.has("padding"): pd[i] = float(pad[src_i[i]]) * sc
 	gravity = int(a.get("gravity", 0))
 	lgrav = int(a.get("layout_gravity", 0))
 	weight = float(a.get("layout_weight", 0))
@@ -77,6 +86,14 @@ func setup(k: String, attrs: Dictionary, ctx: RefCounted) -> void:
 	visible = vis == 0
 	if bg.get("kind") == "anim" or src.get("kind") == "anim": set_process(true)
 	else: set_process(false)
+func _nine_rec(d: Dictionary) -> Dictionary:
+	match d.get("kind", ""):
+		"image": return d["rec"]
+		"selector":
+			for it in d["items"]:
+				var r := _nine_rec(it["d"])
+				if not r.is_empty(): return r
+	return {}
 func _spec(v: Variant) -> float:
 	if v is String: return _dp(v)
 	var f := float(v)
