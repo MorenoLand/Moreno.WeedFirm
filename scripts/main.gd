@@ -8,6 +8,7 @@ var layer: AView
 var task_a := "none"
 var task_b := "none"
 var modal := 0
+var mj_on := false
 var door_timer: Timer
 var phone_timer: Timer
 var drag := ""
@@ -313,6 +314,14 @@ func uitest() -> void:
 	await click_view(owner_ref.v("btn_pissoff"))
 	await get_tree().create_timer(1.5).timeout
 	check("piss off button closes client", modal == 0)
+	magic_joint()
+	await get_tree().create_timer(1.5).timeout
+	var mjs := ui.view("mj_smoke")
+	var blocked := true
+	for q in [Vector2(100, 300), Vector2(800, 500), Vector2(1400, 800), plants[0].v("pot").get_global_rect().get_center()]:
+		var t := _top_at(self, q)
+		if t == null or not (t == mjs or mjs.is_ancestor_of(t)): blocked = false
+	check("level complete overlay blocks everything behind it", blocked)
 func _top_at(n: Node, p: Vector2) -> Control:
 	var kids := n.get_children()
 	kids.reverse()
@@ -733,7 +742,7 @@ func _input(e: InputEvent) -> void:
 		ui.dragging = false
 		desk()
 		room_refresh()
-	if modal > 0 or root == null: return
+	if modal > 0 or mj_on or root == null: return
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and e.pressed:
 		var inside := false
 		for p in plants:
@@ -1032,6 +1041,8 @@ func magic_joint() -> void:
 	var smoke := ui.view("mj_smoke")
 	joint.set_vis(0)
 	smoke.set_vis(0)
+	mj_on = true
+	smoke.mouse_filter = Control.MOUSE_FILTER_STOP
 	ui.view("mj_hint_text").set_text(Assets.str_of(lv[2]))
 	var ic: String = lv[3]
 	ui.view("mj_hint_img").set_src(Assets.drawable("@drawable/" + ic) if ic != "" else {})
@@ -1061,6 +1072,8 @@ func magic_joint() -> void:
 			Anim.play(ui.view("mj_hint"), "mj_hint_out")
 			Anim.play(smoke, "mj_smoke_out", func():
 				smoke.set_vis(2)
+				smoke.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				mj_on = false
 				door_schedule())
 			hud()
 			tasks_refresh()))
