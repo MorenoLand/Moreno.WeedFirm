@@ -581,6 +581,12 @@ var _dstart := Vector2.ZERO
 var _sstart := Vector2.ZERO
 var _down := false
 func _scroll_input(e: InputEvent) -> void:
+	var horiz := kind.begins_with("Horizontal") or kind == "RoomScrollView" or kind == "WeedScrollView"
+	if e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_WHEEL_UP or e.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		var step := (-160.0 if e.button_index == MOUSE_BUTTON_WHEEL_UP else 160.0)
+		ui.scrolled(self, scroll + (Vector2(step, 0) if horiz else Vector2(0, step)))
+		accept_event()
+		return
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
 		_down = e.pressed
 		if e.pressed:
@@ -589,6 +595,5 @@ func _scroll_input(e: InputEvent) -> void:
 			ui.dragging = false
 	elif e is InputEventMouseMotion and _down:
 		var d := get_global_mouse_position() - _dstart
-		var horiz := kind.begins_with("Horizontal") or kind == "RoomScrollView" or kind == "WeedScrollView"
 		if not ui.dragging and d.length() > 12.0: ui.dragging = true
 		if ui.dragging: ui.scrolled(self, _sstart - (Vector2(d.x, 0) if horiz else Vector2(0, d.y)))

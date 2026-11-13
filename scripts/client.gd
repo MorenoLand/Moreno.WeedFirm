@@ -98,7 +98,6 @@ func actions() -> void:
 	if name == "santa": v("btn_christmas").set_vis(0)
 	if name == "cupid": v("btn_valentine").set_vis(0)
 	if name == "ex": v("btn_dice").set_vis(0)
-	if name == "maid" and not g.gift_taken: v("btn_gift").set_vis(0)
 	if name == "jesus_jhamal" or name == "mr_malone":
 		price = deal["cash"]
 		for id in ["btn_rollajoint", "btn_smokeabong", "btn_vaporize", "btn_sell"]: v(id).set_vis(2)

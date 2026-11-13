@@ -31,7 +31,10 @@ func _ready() -> void:
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	btn.pressed.connect(pick)
 	box.add_child(btn)
-	if not OS.has_feature("web"):
+	if OS.has_feature("web"):
+		cb = JavaScriptBridge.create_callback(web_loaded)
+		JavaScriptBridge.get_interface("window").wfCallback = cb
+	else:
 		var hint := Label.new()
 		hint.text = "You can also drop the file onto this window."
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -50,8 +53,6 @@ func pick() -> void:
 	if OS.has_feature("web"): pick_web()
 	else: dlg.popup_centered_ratio(0.7)
 func pick_web() -> void:
-	cb = JavaScriptBridge.create_callback(web_loaded)
-	JavaScriptBridge.get_interface("window").wfCallback = cb
 	JavaScriptBridge.eval("var i=document.createElement('input');i.type='file';i.accept='.apk,.zip';i.onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){window.wfCallback(new Uint8Array(r.result));};r.readAsArrayBuffer(f);};i.click();")
 func web_loaded(args: Array) -> void:
 	if args.is_empty(): return

@@ -223,6 +223,9 @@ func _refresh_all() -> void:
 	door_schedule()
 	phone_schedule()
 	m(0, 0, 0)
+	if Save.int_of("last_bonus") <= Save.now() - 86400000:
+		if Save.int_of("last_bonus") > 0: popup_item("daily_bonus")
+		Save.put("last_bonus", Save.now())
 func level() -> int: return mini(Save.int_of("level"), 17)
 func ldata() -> Array: return Data.LEVELS[level()]
 func cash() -> int: return Save.int_of("cash")
