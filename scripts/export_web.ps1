@@ -20,8 +20,15 @@ $target = Join-Path (Resolve-Path $Out) "index.html"
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $target)) { throw "Export failed (is the $Preset preset and the engine's web export template installed?)" }
 if ($Apk -ne "") {
 	$bundle = Join-Path (Resolve-Path $Out) "data.pck"
-	& $Engine --headless --path $project --script res://scripts/extract_cli.gd -- (Resolve-Path $Apk).Path $bundle
+	$icon = Join-Path (Resolve-Path $Out) "index.icon.png"
+	$log = & $Engine --headless --path $project --script res://scripts/extract_cli.gd -- (Resolve-Path $Apk).Path $bundle $icon
 	if ($LASTEXITCODE -ne 0 -or -not (Test-Path $bundle)) { throw "Could not build the asset bundle from $Apk" }
+	Copy-Item $icon (Join-Path (Resolve-Path $Out) "index.apple-touch-icon.png") -Force
+	$title = ($log | Where-Object { $_ -match "^TITLE=" } | Select-Object -First 1) -replace "^TITLE=", ""
+	if ($title) {
+		$html = Join-Path (Resolve-Path $Out) "index.html"
+		(Get-Content $html -Raw).Replace("Moreno.WeedFirm", $title) | Set-Content $html -NoNewline
+	}
 	Write-Host "Bundled game data into $bundle (local use only, do not publish)"
 }
 Write-Host "Exported to $Out"

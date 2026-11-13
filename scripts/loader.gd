@@ -65,8 +65,26 @@ func _enter_tree() -> void:
 		await get_tree().create_timer(1.0).timeout
 		get_viewport().get_texture().get_image().save_png(shot)
 		get_tree().quit()
+var logo: TextureRect
+func show_logo() -> void:
+	var r := HTTPRequest.new()
+	add_child(r)
+	if r.request(str(JavaScriptBridge.eval("new URL('index.icon.png', document.baseURI).href"))) != OK: return
+	var res: Array = await r.request_completed
+	if res[1] != 200: return
+	var img := Image.new()
+	if img.load_png_from_buffer(res[3]) != OK: return
+	logo = TextureRect.new()
+	logo.texture = ImageTexture.create_from_image(img)
+	logo.custom_minimum_size = Vector2(192, 192)
+	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(logo)
+	box.move_child(logo, 0)
 var req: HTTPRequest
 func fetch_bundle() -> void:
+	show_logo()
 	var prompt := info.text
 	info.text = "Loading game data..."
 	btn.visible = false
@@ -89,6 +107,7 @@ func fetch_bundle() -> void:
 			loaded.emit()
 			return
 	if FileAccess.file_exists(Assets.BUNDLE): DirAccess.remove_absolute(Assets.BUNDLE)
+	if logo != null: logo.queue_free()
 	info.text = prompt
 	btn.visible = true
 func _process(_dt: float) -> void:

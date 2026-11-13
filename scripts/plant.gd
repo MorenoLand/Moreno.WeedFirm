@@ -43,6 +43,12 @@ func set_pot(t: int) -> void:
 	pot = t
 	Save.put(key("p_pot_type"), t)
 	v("pot").set_src(Assets.drawable("@drawable/pot_%d" % t))
+const MENUS := ["no_seeds", "seeds_holder", "no_fertilizers", "fertilizers_holder", "no_pot"]
+func menu_hit(p: Vector2) -> bool:
+	for id in MENUS:
+		var m: AView = ids[id]
+		if m.vis == 0 and m.is_visible_in_tree() and m.get_global_rect().has_point(p): return true
+	return false
 func hide_menus() -> void:
 	for id in ["no_seeds", "seeds_holder", "no_fertilizers", "fertilizers_holder", "no_water", "no_pot", "hint_water", "hint_cut", "hint_remove", "hint_ferts"]: show(id, 2)
 func clear_menus() -> void:
@@ -67,9 +73,8 @@ func set_state(s: int, t: int) -> void:
 	v("pot").on(on_plant)
 	v("weed").on(on_plant)
 	v("stool").on(func(_v):
+		clear_menus()
 		show("no_pot", 0)
-		show("no_seeds", 2)
-		show("seeds_holder", 2)
 		show("hint_remove", 2))
 	var wt := weed_type()
 	match state:
@@ -141,6 +146,7 @@ func tick() -> void:
 		show("clock_value", 2)
 	g.sync_hints()
 func on_empty_pot(_v) -> void:
+	clear_menus()
 	show("no_pot", 2)
 	var any := false
 	for i in 5:
@@ -176,6 +182,7 @@ func pick_seed(_v, i: int) -> void:
 		set_water(water, Save.now())
 		tick())
 func on_plant(_v) -> void:
+	clear_menus()
 	if water < 10 and pot != 2:
 		var sel := Save.str_of("selected_watering", "watering_0")
 		var cnt := Save.int_of(sel)
@@ -225,7 +232,7 @@ func on_plant(_v) -> void:
 				b.set_text(str(n))
 				any = true
 			else: b.set_vis(2)
-		show("no_fertilizers", 2 if any else 0)
+		show("no_fertilizers", 2)
 		show("fertilizers_holder", 0 if any else 2)
 func pick_fert(_v, i: int) -> void:
 	Save.put("tutorial_fertilize", true)
@@ -266,6 +273,7 @@ func harvest(_v) -> void:
 		cut.set_vis(2)
 		set_state(-1, 0)
 		set_water(0, 0)
+		if weed_type() == 4: g.ach("alien_harvester")
 		var amt: int = Data.YIELD[clampi(weed_type(), 0, 4)]
 		var xp: int = Sfx.theme_mult() * (3 if Save.bool_of("sofa") else 1)
 		g.m(xp, 0, amt)

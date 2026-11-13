@@ -15,6 +15,19 @@ var drag_view: AView
 var last_client := ""
 var chalk_c := ""
 var chalk_d := ""
+func apply_identity() -> void:
+	var title: String = Assets.strings.get("app_name", "")
+	if title != "": get_window().title = title
+	var bytes := Assets.bytes_of("mipmap/ic_launcher.640.png")
+	if bytes.is_empty(): return
+	var img := Image.new()
+	if img.load_png_from_buffer(bytes) != OK: return
+	if not OS.has_feature("web"):
+		DisplayServer.set_icon(img)
+		return
+	var b64 := Marshalls.raw_to_base64(bytes)
+	JavaScriptBridge.eval("var l=document.querySelector(\"link[rel~='icon']\");if(!l){l=document.createElement('link');l.rel='icon';document.head.appendChild(l);}l.href='data:image/png;base64,%s';" % b64)
+	if title != "": JavaScriptBridge.eval("document.title=%s;" % JSON.stringify(title))
 func fit_aspect() -> void:
 	var w := get_window()
 	var s := Vector2(w.size)
@@ -27,6 +40,7 @@ func _ready() -> void:
 		lu.loaded.connect(func(): get_tree().reload_current_scene())
 		add_child(lu)
 		return
+	apply_identity()
 	var sd := OS.get_environment("WF_SEED")
 	if sd != "":
 		var sj = JSON.parse_string(sd)
@@ -105,6 +119,10 @@ func _ready() -> void:
 				"board": show_blackboard("a")
 				"popup": popup_item("daily_bonus")
 				"dealer": open_dealer()
+				"ach":
+					for i in 4: ach("decorator")
+					ach("dj")
+				"achlist": show_achievements()
 				"intro": IntroDlg.new(self, Callable())
 			await get_tree().create_timer(float(OS.get_environment("WF_WAIT") if OS.get_environment("WF_WAIT") != "" else "1.5")).timeout
 		var pr := OS.get_environment("WF_PROBE")
@@ -113,6 +131,38 @@ func _ready() -> void:
 			_probe(root, pp)
 		get_viewport().get_texture().get_image().save_png(shot)
 		get_tree().quit()
+func ach(id: String) -> void:
+	for a in Data.ACH:
+		if a[0] != id: continue
+		var key := "ach_" + id
+		var have := Save.int_of(key)
+		if have >= int(a[3]): return
+		Save.put(key, have + 1)
+		if have + 1 >= int(a[3]): toast("Achievement unlocked: %s" % a[1])
+func toast(text: String) -> void:
+	var t := AView.new()
+	t.setup("TextViewNormal", {"text": text, "textSize": "16sp", "textColor": "#ffeee259", "padding": "10dp", "layout_gravity": 0x31, "layout_marginTop": "20dp", "background": "#d9000000", "layout_width": -2, "layout_height": -2}, ui)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(t)
+	layer._sort_all()
+	Sfx.play("bonus")
+	Anim.play_tracks(t, [{"type": "alpha", "a": {"fromAlpha": 1.0, "toAlpha": 1.0}, "off": 0.0, "dur": 2500.0, "ip": "", "fa": false}, {"type": "alpha", "a": {"fromAlpha": 1.0, "toAlpha": 0.0}, "off": 2500.0, "dur": 800.0, "ip": "", "fa": false}], func(): if is_instance_valid(t): t.queue_free())
+func show_achievements() -> void:
+	var dd := dialog("popup")
+	var u: Droid = dd["ui"]
+	u.view("error").set_vis(2)
+	u.view("item").set_vis(2)
+	var lines := ""
+	for a in Data.ACH:
+		var have: int = mini(Save.int_of("ach_" + a[0]), int(a[3]))
+		lines += "%s - %s
+%s
+
+" % [a[1], "done" if have >= int(a[3]) else "%d/%d" % [have, a[3]], a[2]]
+	u.view("ok").tsize = 12.0 * Assets.DP
+	u.view("ok").set_text(lines.strip_edges())
+	u.view("ok").set_vis(0)
+	u.on("back", func(_v): close_dialog(dd))
 func hint_owner(kind: String) -> Plant:
 	for p in plants:
 		var ok := false
@@ -216,8 +266,21 @@ func uitest() -> void:
 	await get_tree().create_timer(0.4).timeout
 	check("tap door client opens dialog", modal == 1)
 	close_all()
+	await get_tree().create_timer(0.2).timeout
 	await click_view(ui.view("btn_desk"))
 	await get_tree().create_timer(0.8).timeout
+	plants[0].set_state(-1, Save.now())
+	Save.put("seeds_0", 2)
+	await click_view(plants[0].v("pot"))
+	await get_tree().create_timer(0.2).timeout
+	check("empty pot opens the seed menu", plants[0].ids["seeds_holder"].vis == 0)
+	await click_at(Vector2(1000, 250))
+	await get_tree().create_timer(0.2).timeout
+	check("tapping elsewhere closes the menu", plants[0].ids["seeds_holder"].vis == 2)
+	plants[0].ids["no_pot"].set_vis(0)
+	await click_view(plants[0].v("pot"))
+	await get_tree().create_timer(0.2).timeout
+	check("only one plant menu at a time", plants[0].ids["no_pot"].vis == 2 and plants[0].ids["seeds_holder"].vis == 0)
 	await click_view(ui.view("btn_settings"))
 	await get_tree().create_timer(0.3).timeout
 	check("settings opens pause", modal == 1)
@@ -314,9 +377,13 @@ func _refresh_all() -> void:
 	phone_schedule()
 	m(0, 0, 0)
 	sync_hints()
+	var got_daily := false
 	if Save.int_of("last_bonus") <= Save.now() - 86400000:
-		if Save.int_of("last_bonus") > 0: popup_item("daily_bonus")
+		if Save.int_of("last_bonus") > 0:
+			popup_item("daily_bonus")
+			got_daily = true
 		Save.put("last_bonus", Save.now())
+	if not got_daily and level() >= 1 and OS.get_environment("WF_SEED") == "" and randf() < 0.25: popup_item("A little gift for dropping by!")
 func level() -> int: return mini(Save.int_of("level"), 17)
 func ldata() -> Array: return Data.LEVELS[level()]
 func cash() -> int: return Save.int_of("cash")
@@ -364,6 +431,7 @@ func level_check() -> void:
 	Sfx.play("level_complete")
 	Save.put("level", level() + 1)
 	Save.put("xp", 0)
+	if level() == 17: ach("weed_hero")
 	hud()
 	tasks_refresh()
 	magic_joint()
@@ -630,6 +698,12 @@ func onSelectVinyl(_v) -> void: show_vinyl_box()
 func onBuyVinyl(_v) -> void: open_shop("vinyl")
 func _input(e: InputEvent) -> void:
 	if modal > 0 or root == null: return
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and e.pressed:
+		var inside := false
+		for p in plants:
+			if p.menu_hit(e.position): inside = true
+		if not inside:
+			for p in plants: p.clear_menus()
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
 		if e.pressed:
 			var p: Vector2 = e.position
@@ -692,6 +766,7 @@ func end_drag(p: Vector2) -> void:
 			Sfx.music(th)
 			Save.put("theme", th)
 			Save.put("vinyl_%d" % i, Save.int_of("vinyl_%d" % i) - 1)
+			ach("dj")
 			L("vinyl_%d" % i)
 		ui.view("vinyl_").set_vis(2)
 		ui.view("vinyl").set_vis(2)
@@ -776,6 +851,7 @@ func apply_item(it: Array) -> void:
 	elif id.begins_with("fertilizer"): Save.put(id, Save.int_of(id) + 1)
 	elif id.begins_with("customize"):
 		Save.put(id, true)
+		ach("decorator")
 		if id == "customize_2": Save.put("customize_3", false)
 		if id == "customize_3": Save.put("customize_2", false)
 		L(id)
@@ -800,7 +876,7 @@ func popup(error := "", ok := "", item: Array = [], bonus_key := "") -> void:
 	if not item.is_empty():
 		u.view("item").set_vis(0)
 		u.view("pic").set_src(Assets.drawable("@drawable/" + item[0]))
-		u.view("bonus").set_text(Assets.str_of(bonus_key))
+		u.view("bonus").set_text(Assets.str_of(bonus_key) if Assets.strings.has(bonus_key) else bonus_key)
 		u.view("title").set_text(Assets.str_of(item[0] + "_name"))
 		u.view("descr").set_text(Assets.str_of(item[0] + "_descr"))
 	u.on("back", func(_v): close_dialog(dd))
@@ -835,8 +911,11 @@ func show_pause() -> void:
 	var dd := dialog("pause")
 	var u: Droid = dd["ui"]
 	u.view("leaderboards").set_vis(2)
-	u.view("achievements").set_vis(2)
 	u.view("feedback").set_vis(2)
+	u.on("achievements", func(_v):
+		Sfx.play("tap")
+		close_dialog(dd)
+		show_achievements())
 	u.view("rotate").set_vis(2)
 	u.view("version").set_text("v.1.7.61")
 	var mute := u.view("mute")

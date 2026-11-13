@@ -173,6 +173,7 @@ func sell(btn) -> void:
 	busy = true
 	Sfx.play("earn")
 	btn.set_vis(1)
+	g.ach("lord_of_the_dealers")
 	g.L("sell")
 	for pair in [[1000, "usd_1000"], [5000, "usd_5000"], [10000, "usd_10000"], [50000, "usd_50000"], [100000, "usd_100000"], [500000, "usd_500000"], [1000000, "usd_1000000"]]:
 		if g.cash() >= pair[0]: g.L(pair[1])
@@ -276,6 +277,7 @@ func buy(btn) -> void:
 	g.room_refresh()
 func shoot(btn) -> void:
 	hide_back()
+	g.ach("sniper")
 	btn.set_vis(1)
 	Sfx.play("shotgun")
 	var gun := v("shoot_gun")

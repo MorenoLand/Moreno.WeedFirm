@@ -271,8 +271,11 @@ func extract(apk_path: String, progress: Callable = Callable()) -> bool:
 	for k in meta: put(k, meta[k])
 	zip.close()
 	return true
-func extract_zip(apk_path: String, zip_path: String) -> bool:
+func extract_zip(apk_path: String, zip_path: String, icon_path := "") -> bool:
 	if not open_index(apk_path): return false
+	if icon_path != "" and files.has("mipmap/ic_launcher.640.png"):
+		var fi := FileAccess.open(icon_path, FileAccess.WRITE)
+		if fi != null: fi.store_buffer(read_bytes("mipmap/ic_launcher.640.png"))
 	var pk := ZIPPacker.new()
 	if pk.open(zip_path) != OK: return false
 	for rel in files:
