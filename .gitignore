@@ -5,3 +5,5 @@ export_presets.cfg
 /export/
 /bin/
 /assets_extracted/
+__pycache__/
+*.pyc

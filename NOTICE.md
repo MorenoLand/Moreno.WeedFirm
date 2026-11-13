@@ -4,9 +4,8 @@
 endorsed by, or sponsored by the original game's developers or publishers.**
 
 - *Weed Firm: RePlanted* and all of its artwork, audio, text, characters,
-  names and other content belong to their respective owners (the package id
-  is `net.manitobagames.weedfirm`, i.e. Manitoba Games). All credit for the
-  game design and content goes to them.
+  names and other content belong to their respective owners, Koolbros. All
+  credit for the game design and content goes to them.
 - This repository contains **only original source code** (a Godot engine
   client). It contains **no** assets or code from the original game: no
   images, sounds, fonts, text strings, or APK files.
