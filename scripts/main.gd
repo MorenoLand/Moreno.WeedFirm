@@ -214,7 +214,7 @@ func selftest() -> void:
 	plants[slot].on_plant(null)
 	check("watered", plants[slot].water == 5 and Save.int_of("watering_1") == 5)
 	var cl := ClientDlg.new(self, "ryan")
-	check("client opens", cl.name == "ryan" and cl.deal["weed"] > 0)
+	check("client opens", cl.name == "ryan" and cl.deal.has("text"))
 	Save.put("weed", 20)
 	var cw := weed_amt()
 	var cc := cash()
@@ -788,15 +788,9 @@ func show_pause() -> void:
 		Save.flush()
 		get_tree().reload_current_scene())
 	u.on("comics", func(_v):
+		Sfx.play("tap")
 		close_dialog(dd)
-		show_comics())
-func show_comics() -> void:
-	var dd := dialog("pause")
-	var u: Droid = dd["ui"]
-	u.view("version").set_vis(2)
-	for id in ["newgame", "comics", "feedback", "achievements", "leaderboards", "rotate", "mute"]: u.view(id).set_vis(2)
-	u.view("back").set_text("Close")
-	u.on("back", func(_v): close_dialog(dd))
+		IntroDlg.new(self, Callable()))
 func burglary() -> void:
 	for p in plants: p.clear_menus()
 	var lost_cash := Save.int_of("desk_cash")
