@@ -24,7 +24,9 @@ func _ready() -> void:
 	var sd := OS.get_environment("WF_SEED")
 	if sd != "":
 		var sj = JSON.parse_string(sd)
-		if sj is Dictionary: Save.d.merge(sj, true)
+		if sj is Dictionary:
+			Save.d.clear()
+			Save.d.merge(sj, true)
 	ui.handler = self
 	root = ui.inflate("game")
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -152,6 +154,14 @@ func uitest() -> void:
 	await click_view(plants[0].v("pot"))
 	await get_tree().create_timer(0.3).timeout
 	check("tap plant waters it", Save.int_of("watering_0") == s0 - 1 and plants[0].water == 2)
+	var pe := InputEventMouseButton.new()
+	pe.button_index = MOUSE_BUTTON_LEFT
+	pe.pressed = true
+	weed._scroll_input(pe)
+	var mv := InputEventMouseMotion.new()
+	mv.button_mask = 0
+	weed._scroll_input(mv)
+	check("scroll drag ends when the release was consumed by a tapped child", not weed._down)
 	await click_view(ui.view("btn_settings"))
 	await get_tree().create_timer(0.3).timeout
 	check("settings opens pause", modal == 1)

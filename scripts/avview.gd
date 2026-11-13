@@ -611,6 +611,9 @@ func _scroll_input(e: InputEvent) -> void:
 			_sstart = scroll
 			ui.dragging = false
 	elif e is InputEventMouseMotion and _down:
+		if not (e.button_mask & MOUSE_BUTTON_MASK_LEFT):
+			_down = false
+			return
 		var d := get_global_mouse_position() - _dstart
 		if not ui.dragging and d.length() > 12.0: ui.dragging = true
 		if ui.dragging: ui.scrolled(self, _sstart - (Vector2(d.x, 0) if horiz else Vector2(0, d.y)))
