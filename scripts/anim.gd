@@ -77,9 +77,9 @@ func _process(dt: float) -> void:
 		if not a.get("init", false):
 			a["init"] = true
 			a["pos"] = v.position
-			a["scale"] = v.scale
-			a["alpha"] = v.modulate.a
-			a["rot"] = v.rotation_degrees
+			a["scale"] = Vector2.ONE
+			a["alpha"] = 1.0
+			a["rot"] = 0.0
 			a["piv"] = v.pivot_offset
 		a["t"] += dt * 1000.0
 		var el: float = a["t"]

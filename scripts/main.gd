@@ -92,6 +92,10 @@ func _ready() -> void:
 				"client": open_client(act.get_slice(":", 1))
 				"shop": open_shop(act.get_slice(":", 1))
 				"mj": magic_joint()
+				"mj2":
+					magic_joint()
+					await get_tree().create_timer(13.0).timeout
+					magic_joint()
 				"burglary": burglary()
 				"raid": raid()
 				"abduction": abduction()
