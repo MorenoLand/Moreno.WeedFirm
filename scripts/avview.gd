@@ -637,8 +637,6 @@ func drawn_at(gp: Vector2) -> bool:
 	for c in get_children():
 		if c is AView and c.drawn_at(gp): return true
 	return false
-func _has_point(p: Vector2) -> bool:
-	return Rect2(Vector2.ZERO, size).has_point(p) and opaque_at(p)
 func _gui_input(e: InputEvent) -> void:
 	if kind == "SeekBar" and enabled:
 		if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and e.pressed or e is InputEventMouseMotion and e.button_mask & 1:
