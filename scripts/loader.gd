@@ -73,7 +73,7 @@ func fetch_bundle() -> void:
 	req = HTTPRequest.new()
 	req.download_file = Assets.BUNDLE
 	add_child(req)
-	var url := str(JavaScriptBridge.eval("new URL('assets.zip', document.baseURI).href"))
+	var url := str(JavaScriptBridge.eval("new URL('data.pck', document.baseURI).href"))
 	if req.request(url) != OK:
 		info.text = prompt
 		btn.visible = true
