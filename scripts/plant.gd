@@ -88,7 +88,6 @@ func set_state(s: int, t: int) -> void:
 			if state == 8:
 				v("pot").on(harvest)
 				v("weed").on(harvest)
-				if not Save.bool_of("tutorial_cut"): show("hint_cut", 0)
 				show("info", 2)
 		_:
 			for id in ["stool", "pot", "ground", "weed"]: show(id, 1)
@@ -140,8 +139,7 @@ func tick() -> void:
 		else: show("hint_water", 0)
 		show("clock_image", 2)
 		show("clock_value", 2)
-	if state > 0 and state < 8 and fert_type() == -1 and not Save.bool_of("tutorial_fertilize") and g.has_ferts() and ids["no_fertilizers"].vis == 2 and ids["fertilizers_holder"].vis == 2: show("hint_ferts", 0)
-	else: show("hint_ferts", 2)
+	g.sync_hints()
 func on_empty_pot(_v) -> void:
 	show("no_pot", 2)
 	var any := false

@@ -61,6 +61,10 @@ func _ready() -> void:
 	if not Save.bool_of("intro_showed") and OS.get_environment("WF_TEST") == "": IntroDlg.new(self, func(): Sfx.music("theme_instrumental"))
 	weed.set_scroll(Vector2(Save.int_of("current_scroll"), 0))
 	_weed_scrolled(weed)
+	if OS.get_environment("WF_BOT") != "":
+		await Bot.new(self).run(float(OS.get_environment("WF_BOT")))
+		get_tree().quit()
+		return
 	if OS.get_environment("WF_CLIENTS") != "":
 		await clienttest()
 		get_tree().quit()
@@ -99,6 +103,38 @@ func _ready() -> void:
 			_probe(root, pp)
 		get_viewport().get_texture().get_image().save_png(shot)
 		get_tree().quit()
+func hint_owner(kind: String) -> Plant:
+	for p in plants:
+		var ok := false
+		match kind:
+			"cut": ok = p.state == 8 and not Save.bool_of("tutorial_cut")
+			"water": ok = p.state >= 1 and p.state <= 7 and p.water == 0 and p.pot != 2 and not Save.bool_of("tutorial_water")
+			"ferts": ok = p.state >= 1 and p.state <= 7 and p.fert_type() == -1 and not Save.bool_of("tutorial_fertilize") and has_ferts() and p.ids["no_fertilizers"].vis == 2 and p.ids["fertilizers_holder"].vis == 2
+		if ok: return p
+	return null
+func sync_hints() -> void:
+	var cut := hint_owner("cut")
+	var water := hint_owner("water") if cut == null else null
+	var ferts := hint_owner("ferts") if cut == null and water == null else null
+	for p in plants:
+		p.show("hint_cut", 0 if p == cut else 2)
+		p.show("hint_water", 0 if p == water else 2)
+		p.show("hint_ferts", 0 if p == ferts else 2)
+	var any := cut != null or water != null or ferts != null
+	var hs := ui.view("hint_slide")
+	if hs != null: hs.set_vis(0 if not Save.bool_of("tutorial_slide") and not any else 2)
+func forward_click(p: Vector2) -> void:
+	if modal > 0: return
+	var hit := _find_click(room, p)
+	if hit != null: ui.click(hit)
+func _find_click(n: AView, p: Vector2) -> AView:
+	var hit: AView = null
+	for c in n.get_children():
+		if c is AView and c.vis == 0 and c.visible:
+			var sub := _find_click(c, p)
+			if sub != null: hit = sub
+			if c.clickable and c.enabled and not c.kind.ends_with("ScrollView") and c.get_global_rect().has_point(p): hit = c
+	return hit
 func check(name: String, ok: bool) -> void: print("TEST ", "PASS " if ok else "FAIL ", name)
 func clienttest() -> void:
 	Save.put("level", 16)
@@ -162,6 +198,16 @@ func uitest() -> void:
 	mv.button_mask = 0
 	weed._scroll_input(mv)
 	check("scroll drag ends when the release was consumed by a tapped child", not weed._down)
+	door_show(0, "ryan", false)
+	scroll_to(ui.view("weed_holder").size.x)
+	await get_tree().create_timer(0.9).timeout
+	var dp := ui.view("door_photo_0")
+	await click_view(dp)
+	await get_tree().create_timer(0.4).timeout
+	check("tap door client opens dialog", modal == 1)
+	close_all()
+	await click_view(ui.view("btn_desk"))
+	await get_tree().create_timer(0.8).timeout
 	await click_view(ui.view("btn_settings"))
 	await get_tree().create_timer(0.3).timeout
 	check("settings opens pause", modal == 1)
@@ -257,6 +303,7 @@ func _refresh_all() -> void:
 	door_schedule()
 	phone_schedule()
 	m(0, 0, 0)
+	sync_hints()
 	if Save.int_of("last_bonus") <= Save.now() - 86400000:
 		if Save.int_of("last_bonus") > 0: popup_item("daily_bonus")
 		Save.put("last_bonus", Save.now())
@@ -441,7 +488,7 @@ func _weed_scrolled(v: AView) -> void:
 	if ww > 0: room.set_scroll(Vector2(rw * weed.scroll.x / ww, 0))
 	if weed.scroll.x > weed.size.x / 2.0 and ui.view("hint_slide").vis == 0:
 		Save.put("tutorial_slide", true)
-		ui.view("hint_slide").set_vis(2)
+		sync_hints()
 	Save.put("current_scroll", int(weed.scroll.x))
 	door_arrows()
 func onDesk(_v) -> void:

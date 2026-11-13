@@ -3,7 +3,7 @@ var path := "user://save.json"
 var d := {}
 var _t: Timer
 func _ready() -> void:
-	for k in ["WF_SEED", "WF_TEST", "WF_UITEST", "WF_CLIENTS", "WF_ACT", "WF_SHOT"]:
+	for k in ["WF_SEED", "WF_TEST", "WF_UITEST", "WF_CLIENTS", "WF_BOT", "WF_ACT", "WF_SHOT"]:
 		if OS.get_environment(k) != "": path = "user://test_save.json"
 	var t := FileAccess.get_file_as_string(path)
 	if t != "":

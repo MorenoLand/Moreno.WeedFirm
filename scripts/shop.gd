@@ -128,5 +128,6 @@ func buy(it: Array) -> void:
 		var bc := ui.view("bonus_cash")
 		bc.set_text("-%d cash" % it[1])
 		bc.set_vis(0)
-		Anim.play(ui.view("bonus_holder"), "bonus", func(): bc.set_vis(2))
+		Anim.play(ui.view("bonus_holder"), "bonus", func():
+			if is_instance_valid(bc): bc.set_vis(2))
 		refresh()

@@ -606,6 +606,8 @@ func _scroll_input(e: InputEvent) -> void:
 		return
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
 		_down = e.pressed
+		if not e.pressed and kind == "WeedScrollView" and not ui.dragging and ui.handler != null and ui.handler.has_method("forward_click"):
+			ui.handler.forward_click(get_global_transform() * e.position)
 		if e.pressed:
 			_dstart = get_global_mouse_position()
 			_sstart = scroll
