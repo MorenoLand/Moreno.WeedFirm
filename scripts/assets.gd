@@ -11,8 +11,15 @@ var _lay := {}
 var _snd := {}
 var _fonts := {}
 func _ready() -> void: reload()
+const APK_CFG := "user://apk_path.txt"
+var src: ApkLoader = null
 func reload() -> void:
-	base = "user://assets_extracted/" if FileAccess.file_exists("user://assets_extracted/strings.json") else "res://assets_extracted/"
+	src = null
+	base = "res://assets_extracted/"
+	if FileAccess.file_exists("user://assets_extracted/strings.json"): base = "user://assets_extracted/"
+	elif FileAccess.file_exists(APK_CFG):
+		var l := ApkLoader.new()
+		if l.open_index(FileAccess.get_file_as_string(APK_CFG).strip_edges()): src = l
 	_tex.clear()
 	_drw.clear()
 	_lay.clear()
@@ -23,7 +30,19 @@ func reload() -> void:
 	styles = jload("styles.json")
 	nine = jload("ninepatch.json")
 func ok() -> bool: return not strings.is_empty()
+func has(rel: String) -> bool: return src.has(rel) if src != null else FileAccess.file_exists(base + rel)
+func bytes_of(rel: String) -> PackedByteArray: return src.read_bytes(rel) if src != null else FileAccess.get_file_as_bytes(base + rel)
+func use_apk(path: String) -> bool:
+	var l := ApkLoader.new()
+	if not l.open_index(path): return false
+	var f := FileAccess.open(APK_CFG, FileAccess.WRITE)
+	if f == null: return false
+	f.store_string(path)
+	f.close()
+	reload()
+	return ok()
 func jload(rel: String) -> Variant:
+	if src != null: return src.json(rel)
 	var t := FileAccess.get_file_as_string(base + rel)
 	return JSON.parse_string(t) if t != "" else {}
 func layout(name: String) -> Variant:
@@ -53,8 +72,8 @@ func rec(name: String) -> Dictionary:
 		for suf in [".320", "", ".160", ".240", ".480"]:
 			for ext in ["png", "jpg", "webp"]:
 				var rel := "%s/%s%s.%s" % [d, name, suf, ext]
-				if FileAccess.file_exists(base + rel):
-					var bytes := FileAccess.get_file_as_bytes(base + rel)
+				if has(rel):
+					var bytes := bytes_of(rel)
 					var img := Image.new()
 					var err := img.load_png_from_buffer(bytes) if ext == "png" else (img.load_jpg_from_buffer(bytes) if ext == "jpg" else img.load_webp_from_buffer(bytes))
 					if err != OK: continue
@@ -62,7 +81,7 @@ func rec(name: String) -> Dictionary:
 					if suf == ".160": dens = 160.0
 					elif suf == ".240": dens = 240.0
 					elif suf == ".480": dens = 480.0
-					r = {"tex": ImageTexture.create_from_image(img), "scale": 320.0 / dens * (DP / 2.0), "nine": nine.get(rel)}
+					r = {"tex": ImageTexture.create_from_image(img), "scale": 320.0 / dens * (DP / 2.0), "nine": (src.nine(bytes) if src != null and ext == "png" else nine.get(rel))}
 					break
 			if not r.is_empty(): break
 		if not r.is_empty(): break
@@ -140,17 +159,15 @@ func dp(v: Variant) -> float:
 func font(name: String) -> Font:
 	if _fonts.has(name): return _fonts[name]
 	var f: Font = null
-	var p := base + "fonts/" + name + ".ttf"
-	if FileAccess.file_exists(p):
+	if has("fonts/" + name + ".ttf"):
 		var ff := FontFile.new()
-		ff.data = FileAccess.get_file_as_bytes(p)
+		ff.data = bytes_of("fonts/" + name + ".ttf")
 		f = ff
 	_fonts[name] = f
 	return f
 func sound(name: String) -> AudioStream:
 	if _snd.has(name): return _snd[name]
 	var s: AudioStream = null
-	var p := base + "raw/" + name + ".ogg"
-	if FileAccess.file_exists(p): s = AudioStreamOggVorbis.load_from_buffer(FileAccess.get_file_as_bytes(p))
+	if has("raw/" + name + ".ogg"): s = AudioStreamOggVorbis.load_from_buffer(bytes_of("raw/" + name + ".ogg"))
 	_snd[name] = s
 	return s

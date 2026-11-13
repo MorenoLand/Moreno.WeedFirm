@@ -40,13 +40,13 @@ func _ready() -> void:
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hint.add_theme_font_size_override("font_size", 22)
 		box.add_child(hint)
-		get_window().files_dropped.connect(func(f: PackedStringArray): if f.size() > 0: run(f[0]))
+		get_window().files_dropped.connect(func(f: PackedStringArray): if f.size() > 0: choose(f[0]))
 		dlg = FileDialog.new()
 		dlg.file_mode = FileDialog.FILE_MODE_OPEN_FILE
 		dlg.access = FileDialog.ACCESS_FILESYSTEM
 		dlg.use_native_dialog = true
 		dlg.filters = PackedStringArray(["*.apk,*.zip ; Android package"])
-		dlg.file_selected.connect(run)
+		dlg.file_selected.connect(choose)
 		add_child(dlg)
 func pick() -> void:
 	if busy: return
@@ -57,13 +57,41 @@ func pick_web() -> void:
 func web_loaded(args: Array) -> void:
 	if args.is_empty(): return
 	var bytes := JavaScriptBridge.js_buffer_to_packed_byte_array(args[0])
-	var f := FileAccess.open("user://upload.apk", FileAccess.WRITE)
+	var f := FileAccess.open("user://game.apk", FileAccess.WRITE)
 	if f == null:
 		info.text = "Could not store the file."
 		return
 	f.store_buffer(bytes)
 	f.close()
-	run("user://upload.apk")
+	choose("user://game.apk")
+var pick_row: HBoxContainer
+func choose(path: String) -> void:
+	if busy: return
+	if pick_row != null: pick_row.queue_free()
+	pick_row = HBoxContainer.new()
+	pick_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	pick_row.add_theme_constant_override("separation", 24)
+	pick_row.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	pick_row.position = Vector2(-450, 700)
+	pick_row.custom_minimum_size = Vector2(900, 0)
+	add_child(pick_row)
+	info.text = "Play straight from the APK, or unpack it to disk for faster loading."
+	var a := Button.new()
+	a.text = "Play from APK"
+	var b := Button.new()
+	b.text = "Unpack to disk"
+	for x in [a, b]:
+		x.add_theme_font_size_override("font_size", 28)
+		x.custom_minimum_size = Vector2(300, 80)
+		pick_row.add_child(x)
+	a.pressed.connect(func(): direct(path))
+	b.pressed.connect(func(): run(path))
+func direct(path: String) -> void:
+	if busy: return
+	if Assets.use_apk(path):
+		if OS.has_feature("web"): JavaScriptBridge.force_fs_sync()
+		loaded.emit()
+	else: info.text = "That file is not a readable APK. Try another."
 func run(path: String) -> void:
 	if busy: return
 	busy = true
@@ -73,7 +101,6 @@ func run(path: String) -> void:
 	await get_tree().process_frame
 	var l := ApkLoader.new()
 	var ok := l.extract(path, func(n: int): info.text = "Unpacking... %d files" % n)
-	if path == "user://upload.apk": DirAccess.remove_absolute(path)
 	if not ok:
 		info.text = "That file is not a readable APK. Try another."
 		busy = false

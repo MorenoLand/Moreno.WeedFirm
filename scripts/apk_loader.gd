@@ -179,14 +179,14 @@ func item_text(strings: Dictionary, t: int, d: int) -> Variant:
 		var r := ref(d)
 		return strings.get(r.get_slice("/", 1), r)
 	return val(t, d)
-func extract(apk_path: String, progress: Callable = Callable()) -> bool:
+var files := {}
+var meta := {}
+func open_index(apk_path: String) -> bool:
 	zip = ZIPReader.new()
 	if zip.open(apk_path) != OK: return false
 	if not zip.file_exists("resources.arsc"): return false
 	parse_arsc(zip.read_file("resources.arsc"))
-	put(".gdignore", PackedByteArray())
 	var kinds := ["drawable", "mipmap", "layout", "anim", "raw", "xml", "menu", "interpolator", "color"]
-	var done := 0
 	for tn in kinds:
 		var names: Dictionary = res.get(tn, {})
 		for name in names:
@@ -204,23 +204,14 @@ func extract(apk_path: String, progress: Callable = Callable()) -> bool:
 				for e in fs:
 					var pth2: String = gp[e[1][1]]
 					var ext := pth2.substr(pth2.rfind("."))
-					var rel := "%s/%s%s%s" % [tn, name, "" if fs.size() == 1 else ".%d" % density(e[0]), ext]
-					var data := zip.read_file(pth2)
-					put(rel, data)
-					count += 1
-					if ext == ".png":
-						var np: Variant = nine(data)
-						if np != null: patches[rel] = np
+					files["%s/%s%s%s" % [tn, name, "" if fs.size() == 1 else ".%d" % density(e[0]), ext]] = {"src": pth2, "axml": false}
 				continue
 			var pick: Array = fs[0]
 			for e in fs:
 				if is_plain(e[0]):
 					pick = e
 					break
-			put("%s/%s.json" % [tn, name], axml(zip.read_file(gp[pick[1][1]])))
-			count += 1
-			done += 1
-			if progress.is_valid() and done % 40 == 0: progress.call(count)
+			files["%s/%s.json" % [tn, name]] = {"src": gp[pick[1][1]], "axml": true}
 	var strings := {}
 	for nm in res.get("string", {}):
 		for e in res["string"][nm]:
@@ -244,14 +235,39 @@ func extract(apk_path: String, progress: Callable = Callable()) -> bool:
 				styles[nm] = {"parent": ref(int(parents.get("style/" + nm, 0))), "attrs": attrs}
 	var idmap := {}
 	for k in ids: idmap["0x%08x" % k] = "%s/%s" % [ids[k][0], ids[k][1]]
-	put("strings.json", strings)
-	put("arrays.json", arrays)
-	put("styles.json", styles)
-	put("ninepatch.json", patches)
-	put("ids.json", idmap)
+	meta["strings.json"] = strings
+	meta["arrays.json"] = arrays
+	meta["styles.json"] = styles
+	meta["ids.json"] = idmap
+	meta["ninepatch.json"] = {}
 	for f in zip.get_files():
-		if f.begins_with("assets/fonts/") and not f.ends_with("/"):
-			put("fonts/" + f.get_file(), zip.read_file(f))
-			count += 1
+		if f.begins_with("assets/fonts/") and not f.ends_with("/"): files["fonts/" + f.get_file()] = {"src": f, "axml": false}
+	return true
+func has(rel: String) -> bool: return files.has(rel) or meta.has(rel)
+func read_bytes(rel: String) -> PackedByteArray:
+	if meta.has(rel): return JSON.stringify(meta[rel]).to_utf8_buffer()
+	if not files.has(rel): return PackedByteArray()
+	var f: Dictionary = files[rel]
+	var b := zip.read_file(f["src"])
+	return JSON.stringify(axml(b)).to_utf8_buffer() if f["axml"] else b
+func json(rel: String) -> Variant:
+	if meta.has(rel): return meta[rel]
+	if files.has(rel) and files[rel]["axml"]: return axml(zip.read_file(files[rel]["src"]))
+	return {}
+func extract(apk_path: String, progress: Callable = Callable()) -> bool:
+	if not open_index(apk_path): return false
+	put(".gdignore", PackedByteArray())
+	var n := 0
+	for rel in files:
+		var data := read_bytes(rel)
+		put(rel, data)
+		count += 1
+		n += 1
+		if rel.ends_with(".png"):
+			var np: Variant = nine(data)
+			if np != null: patches[rel] = np
+		if progress.is_valid() and n % 40 == 0: progress.call(count)
+	meta["ninepatch.json"] = patches
+	for k in meta: put(k, meta[k])
 	zip.close()
 	return true
