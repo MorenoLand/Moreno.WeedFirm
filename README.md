@@ -5,8 +5,10 @@ Fan project, not affiliated with the original developers. See [NOTICE.md](NOTICE
 ## Setup
 
 1. Get the free *Weed Firm: RePlanted* APK from a legitimate source.
-2. Extract the content locally (output is git-ignored): `python scripts/extract_assets.py path/to/game.apk`
-3. Open the folder in Godot 4.3+ or Redot and run.
+2. Open the project in Godot 4.4+ or Redot and run it, or use an exported build.
+3. On first launch select the APK (or drop it onto the window). It is unpacked on your device only, into the app's user data folder, and never leaves it.
+
+To unpack from the command line instead: `redot --headless --script scripts/extract_cli.gd -- path/to/game.apk`
 
 ## License
 

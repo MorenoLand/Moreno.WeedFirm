@@ -10,7 +10,14 @@ var _drw := {}
 var _lay := {}
 var _snd := {}
 var _fonts := {}
-func _ready() -> void:
+func _ready() -> void: reload()
+func reload() -> void:
+	base = "user://assets_extracted/" if FileAccess.file_exists("user://assets_extracted/strings.json") else "res://assets_extracted/"
+	_tex.clear()
+	_drw.clear()
+	_lay.clear()
+	_snd.clear()
+	_fonts.clear()
 	strings = jload("strings.json")
 	arrays = jload("arrays.json")
 	styles = jload("styles.json")
@@ -47,8 +54,10 @@ func rec(name: String) -> Dictionary:
 			for ext in ["png", "jpg", "webp"]:
 				var rel := "%s/%s%s.%s" % [d, name, suf, ext]
 				if FileAccess.file_exists(base + rel):
-					var img := Image.load_from_file(ProjectSettings.globalize_path(base + rel))
-					if img == null: continue
+					var bytes := FileAccess.get_file_as_bytes(base + rel)
+					var img := Image.new()
+					var err := img.load_png_from_buffer(bytes) if ext == "png" else (img.load_jpg_from_buffer(bytes) if ext == "jpg" else img.load_webp_from_buffer(bytes))
+					if err != OK: continue
 					var dens := 320.0
 					if suf == ".160": dens = 160.0
 					elif suf == ".240": dens = 240.0
@@ -142,6 +151,6 @@ func sound(name: String) -> AudioStream:
 	if _snd.has(name): return _snd[name]
 	var s: AudioStream = null
 	var p := base + "raw/" + name + ".ogg"
-	if FileAccess.file_exists(p): s = AudioStreamOggVorbis.load_from_file(ProjectSettings.globalize_path(p))
+	if FileAccess.file_exists(p): s = AudioStreamOggVorbis.load_from_buffer(FileAccess.get_file_as_bytes(p))
 	_snd[name] = s
 	return s

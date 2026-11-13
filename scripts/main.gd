@@ -17,9 +17,9 @@ var chalk_c := ""
 var chalk_d := ""
 func _ready() -> void:
 	if not Assets.ok():
-		var l := Label.new()
-		l.text = "Run scripts/extract_assets.py with your APK first."
-		add_child(l)
+		var lu := LoaderUI.new()
+		lu.loaded.connect(func(): get_tree().reload_current_scene())
+		add_child(lu)
 		return
 	var sd := OS.get_environment("WF_SEED")
 	if sd != "":
@@ -59,6 +59,10 @@ func _ready() -> void:
 	if not Save.bool_of("intro_showed") and OS.get_environment("WF_TEST") == "": IntroDlg.new(self, func(): Sfx.music("theme_instrumental"))
 	weed.set_scroll(Vector2(Save.int_of("current_scroll"), 0))
 	_weed_scrolled(weed)
+	if OS.get_environment("WF_UITEST") != "":
+		await uitest()
+		get_tree().quit()
+		return
 	if OS.get_environment("WF_TEST") != "":
 		await selftest()
 		get_tree().quit()
@@ -90,6 +94,53 @@ func _ready() -> void:
 		get_viewport().get_texture().get_image().save_png(shot)
 		get_tree().quit()
 func check(name: String, ok: bool) -> void: print("TEST ", "PASS " if ok else "FAIL ", name)
+func click_at(p: Vector2) -> void:
+	for pressed in [true, false]:
+		var e := InputEventMouseButton.new()
+		e.button_index = MOUSE_BUTTON_LEFT
+		e.pressed = pressed
+		e.position = p
+		e.global_position = p
+		get_viewport().push_input(e)
+		await get_tree().process_frame
+func click_view(v: AView) -> void: await click_at(v.get_global_rect().get_center())
+func uitest() -> void:
+	await get_tree().process_frame
+	await click_view(ui.view("btn_shop"))
+	await get_tree().create_timer(0.3).timeout
+	check("click opens shop", shop_dlg != null)
+	await click_view(shop_dlg.ui.view("tab_2"))
+	check("tab click selects seeds", shop_dlg.tab == "seeds")
+	await click_view(shop_dlg.ui.view("btn_back"))
+	await get_tree().create_timer(0.3).timeout
+	check("back closes shop", shop_dlg == null and modal == 0)
+	await click_view(ui.view("btn_door"))
+	await get_tree().create_timer(0.8).timeout
+	check("door button scrolls right", weed.scroll.x > 100)
+	await click_view(ui.view("btn_desk"))
+	await get_tree().create_timer(0.8).timeout
+	check("desk button scrolls back", weed.scroll.x < 5)
+	ui.view("hint_slide").set_vis(2)
+	var s0 := Save.int_of("watering_0")
+	Save.put("selected_watering", "watering_0")
+	await click_view(plants[0].v("pot"))
+	await get_tree().create_timer(0.3).timeout
+	check("tap plant waters it", Save.int_of("watering_0") == s0 - 1 and plants[0].water == 2)
+	await click_view(ui.view("btn_settings"))
+	await get_tree().create_timer(0.3).timeout
+	check("settings opens pause", modal == 1)
+	close_all()
+	Save.put("customize_0", true)
+	open_client("mike")
+	await get_tree().create_timer(0.3).timeout
+	check("client dialog open", modal == 1)
+	Save.put("weed", 10)
+	var cdlg_cash := cash()
+	var btn: AView = null
+	for c in layer.get_children():
+		if c is AView and c.get_child_count() > 0:
+			btn = c.get_child(0).find_child("*", true, false)
+	await get_tree().create_timer(0.1).timeout
 func close_all() -> void:
 	for c in layer.get_children(): c.queue_free()
 	modal = 0
