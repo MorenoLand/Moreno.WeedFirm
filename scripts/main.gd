@@ -59,6 +59,10 @@ func _ready() -> void:
 	if not Save.bool_of("intro_showed") and OS.get_environment("WF_TEST") == "": IntroDlg.new(self, func(): Sfx.music("theme_instrumental"))
 	weed.set_scroll(Vector2(Save.int_of("current_scroll"), 0))
 	_weed_scrolled(weed)
+	if OS.get_environment("WF_CLIENTS") != "":
+		await clienttest()
+		get_tree().quit()
+		return
 	if OS.get_environment("WF_UITEST") != "":
 		await uitest()
 		get_tree().quit()
@@ -94,6 +98,28 @@ func _ready() -> void:
 		get_viewport().get_texture().get_image().save_png(shot)
 		get_tree().quit()
 func check(name: String, ok: bool) -> void: print("TEST ", "PASS " if ok else "FAIL ", name)
+func clienttest() -> void:
+	Save.put("level", 16)
+	Save.put("cash", 900000)
+	for name in Data.CLIENTS:
+		await get_tree().create_timer(4.5).timeout
+		close_all()
+		Save.put("weed", 500)
+		var cl := ClientDlg.new(self, name)
+		await get_tree().process_frame
+		var acts := []
+		for id in ["btn_sell", "btn_pay", "btn_trade", "btn_trick", "btn_rollajoint", "btn_smokeabong", "btn_vaporize", "btn_shoot", "btn_dice", "btn_christmas", "btn_valentine"]:
+			if cl.v(id).vis == 0: acts.append(id)
+		for id in cl.BTNS:
+			if id.begins_with("btn_buya") and cl.v(id).vis == 0: acts.append(id)
+		for id in acts:
+			if cl.v(id).vis != 0: continue
+			if id == "btn_christmas" or id == "btn_valentine": cl.bonus_gift(cl.v(id), "christmas_bonus")
+			elif not id.begins_with("btn_roll") and not id.begins_with("btn_smoke") and id != "btn_vaporize": cl.call({"btn_sell": "sell", "btn_pay": "pay", "btn_trade": "trade", "btn_trick": "trick", "btn_shoot": "shoot", "btn_dice": "dice"}.get(id, "buy"), cl.v(id))
+			else: cl.smoke({"btn_rollajoint": 1, "btn_smokeabong": 2, "btn_vaporize": 3}[id], "x", 1.0)
+			await get_tree().create_timer(0.2).timeout
+		print("CLIENT ", name, " actions=", acts.size())
+	print("CLIENTS DONE")
 func click_at(p: Vector2) -> void:
 	for pressed in [true, false]:
 		var e := InputEventMouseButton.new()
@@ -641,6 +667,7 @@ func dialog(name: String, dim := true) -> Dictionary:
 	layer._sort_all()
 	return {"ui": dd, "w": w, "root": r}
 func close_dialog(dd: Dictionary) -> void:
+	if not is_instance_valid(dd["w"]): return
 	dd["w"].queue_free()
 	modal = maxi(modal - 1, 0)
 	if modal == 0:

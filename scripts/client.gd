@@ -135,7 +135,13 @@ func bonus(xp := "", cash_ := "", weed_ := "") -> void:
 	Anim.play(v("bonus_holder"), "bonus", func():
 		for id in ["bonus_xp", "bonus_cash", "bonus_weed"]: v(id).set_vis(2))
 func tell_out() -> void: Anim.play(v("tell"), "client_text_out")
+var closed := false
+func hide(list: Array) -> void:
+	for x in list:
+		if is_instance_valid(x): x.set_vis(2)
 func close() -> void:
+	if closed: return
+	closed = true
 	g.close_dialog(d)
 	g.door_schedule()
 func pissoff(_btn) -> void:
@@ -160,8 +166,10 @@ func pissoff(_btn) -> void:
 	g.gift_taken = false
 func sell(btn) -> void:
 	hide_back()
+	if busy: return
 	var xp: int = Sfx.theme_mult() * (2 if Save.bool_of("sofa") else 1)
 	if not g.m(xp, deal["cash"], -deal["weed"]): return
+	busy = true
 	Sfx.play("earn")
 	btn.set_vis(1)
 	g.L("sell")
@@ -178,12 +186,14 @@ func sell(btn) -> void:
 	Anim.play(r, "sell_right_hand")
 	Anim.play(hs, "sell_hash")
 	Anim.play(c, "sell_cash", func():
-		for x in [l, r, c, hs]: x.set_vis(2)
+		hide([l, r, c, hs])
 		close())
 	g.gift_taken = false
 func pay(btn) -> void:
 	hide_back()
+	if busy: return
 	if not g.m(0, -price, 0): return
+	busy = true
 	Sfx.play("pay")
 	btn.set_vis(1)
 	if name == "jesus_jhamal": g.L("gangsters")
@@ -197,12 +207,14 @@ func pay(btn) -> void:
 	Anim.play(l, "sell_left_hand")
 	Anim.play(r, "sell_right_hand")
 	Anim.play(hs, "sell_hash", func():
-		for x in [l, r, hs]: x.set_vis(2)
+		hide([l, r, hs])
 		close())
 	g.desk()
 func trade(btn) -> void:
 	hide_back()
+	if busy: return
 	if not g.m(deal["cash"], 0, -deal["weed"]): return
+	busy = true
 	Sfx.play("alien")
 	btn.set_vis(1)
 	g.L("alien")
@@ -217,11 +229,13 @@ func trade(btn) -> void:
 	Anim.play(r, "sell_right_hand")
 	Anim.play(hs, "sell_hash")
 	Anim.play(x_, "sell_cash", func():
-		for x in [l, r, x_, hs]: x.set_vis(2)
+		hide([l, r, x_, hs])
 		close())
 func trick(btn) -> void:
 	hide_back()
+	if busy: return
 	if not g.m(0, 0, -deal["weed"]): return
+	busy = true
 	Sfx.play("zombie_trick")
 	btn.set_vis(1)
 	bonus("", "", "-%d weed" % deal["weed"])
@@ -233,11 +247,13 @@ func trick(btn) -> void:
 	Anim.play(l, "sell_left_hand")
 	Anim.play(r, "sell_right_hand")
 	Anim.play(hs, "sell_hash", func():
-		for x in [l, r, hs]: x.set_vis(2)
+		hide([l, r, hs])
 		close())
 func buy(btn) -> void:
 	hide_back()
+	if busy: return
 	if not g.m(0, -price, 0): return
+	busy = true
 	Sfx.play("pay")
 	btn.set_vis(1)
 	var b: Array = BUY.get(name, ["", "", 0, "", 0, 0])
@@ -253,7 +269,7 @@ func buy(btn) -> void:
 	Anim.play(l, "sell_left_hand")
 	Anim.play(r, "sell_right_hand")
 	Anim.play(hs, "sell_hash", func():
-		for x in [l, r, hs]: x.set_vis(2)
+		hide([l, r, hs])
 		close())
 	g.desk()
 	g.room_refresh()
