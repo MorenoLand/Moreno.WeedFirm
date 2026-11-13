@@ -4,7 +4,9 @@ param(
 	[string]$Platform = "Windows",
 	[string]$Name = "WeedFirm",
 	[string]$Templates = "",
-	[string]$Upx = "upx"
+	[string]$Upx = "upx",
+	[string]$Icon = "",
+	[string]$Apk = ""
 )
 $ErrorActionPreference = "Stop"
 $project = Split-Path -Parent $PSScriptRoot
@@ -28,6 +30,13 @@ New-Item -ItemType Directory -Force -Path $work | Out-Null
 try {
 	$packed = Join-Path $work $tplName
 	Copy-Item $tpl $packed
+	if ($Platform -ne "Linux") {
+		if ($Icon -eq "" -and $Apk -ne "") {
+			$Icon = Join-Path $work "icon.png"
+			& $Engine --headless --path $project --script res://scripts/extract_cli.gd -- (Resolve-Path $Apk).Path (Join-Path $work "icon.pck") $Icon | Out-Null
+		}
+		if ($Icon -ne "" -and (Test-Path $Icon)) { & (Join-Path $PSScriptRoot "set_icon.ps1") -Exe $packed -Png $Icon }
+	}
 	& $Upx --best --lzma -q $packed | Out-Null
 	if ($LASTEXITCODE -ne 0) { throw "UPX failed on the template" }
 	$pck = Join-Path $work "game.pck"

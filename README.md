@@ -18,7 +18,7 @@ The web build needs no special server headers (the server must send `.wasm` as `
 
 On Windows, `scripts/export_web.ps1 -Engine <engine folder or exe> -Out <folder to serve>` runs the web export into any folder, for example a local web server's document root. Add `-Apk <path to your APK>` to also write a `data.pck` next to it: the page then downloads that bundle on first visit and starts with no APK step. That bundle (a zip with a `.pck` name, since some servers refuse `.zip` downloads) contains the game's own files, so keep it for local use and never publish it.
 
-For a small desktop build, `scripts/export_desktop.ps1 -Engine <engine folder or exe> -Out <folder>` writes a single compressed `WeedFirm.exe` of about 23 MB instead of about 98 MB (it needs UPX and the engine's release export templates). `-Platform Linux` does the same for Linux (not tested).
+For a small desktop build, `scripts/export_desktop.ps1 -Engine <engine folder or exe> -Out <folder>` writes a single compressed `WeedFirm.exe` of about 23 MB instead of about 98 MB (it needs UPX and the engine's release export templates). `-Platform Linux` does the same for Linux (not tested). On Windows, pass `-Apk <your game.apk>` (or `-Icon <png>`) to give the exe the game icon; it is read from your own APK at build time and never stored in the repo.
 
 To unpack from the command line instead: `redot --headless --script scripts/extract_cli.gd -- path/to/game.apk`
 
