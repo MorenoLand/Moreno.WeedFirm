@@ -15,7 +15,13 @@ var drag_view: AView
 var last_client := ""
 var chalk_c := ""
 var chalk_d := ""
+func fit_aspect() -> void:
+	var w := get_window()
+	var s := Vector2(w.size)
+	w.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP if s.x / maxf(s.y, 1.0) < 1600.0 / 960.0 else Window.CONTENT_SCALE_ASPECT_EXPAND
 func _ready() -> void:
+	get_window().size_changed.connect(fit_aspect)
+	fit_aspect()
 	if not Assets.ok():
 		var lu := LoaderUI.new()
 		lu.loaded.connect(func(): get_tree().reload_current_scene())
