@@ -10,6 +10,7 @@ func _ready() -> void:
 	_music = AudioStreamPlayer.new()
 	add_child(_music)
 func muted() -> bool: return Save.bool_of("mute")
+func music_off() -> bool: return muted() or Save.bool_of("mute_music")
 func play(name: String) -> void:
 	if muted(): return
 	var s := Assets.sound(name)
@@ -28,11 +29,11 @@ func music(name: String) -> void:
 	if s is AudioStreamOggVorbis: s.loop = true
 	_music.stream = s
 	_music.volume_db = 0.0
-	if not muted(): _music.play()
+	if not music_off(): _music.play()
 	else: _music.stop()
 func stop_music() -> void: _music.stop()
 func refresh() -> void:
-	if muted(): _music.stop()
+	if music_off(): _music.stop()
 	elif _music.stream != null and not _music.playing: _music.play()
 func theme_mult() -> int:
 	match theme:

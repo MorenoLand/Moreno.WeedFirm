@@ -916,7 +916,14 @@ func show_pause() -> void:
 		Sfx.play("tap")
 		close_dialog(dd)
 		show_achievements())
-	u.view("rotate").set_vis(2)
+	var mus := u.view("rotate")
+	mus.set_src(Assets.drawable("@drawable/little_headphones"))
+	mus.a["scaleType"] = 3
+	mus.set_tint(Color(1, 1, 1, 0.35) if Save.bool_of("mute_music") else Color.WHITE)
+	u.on("rotate", func(_v):
+		Save.put("mute_music", not Save.bool_of("mute_music"))
+		Sfx.refresh()
+		mus.set_tint(Color(1, 1, 1, 0.35) if Save.bool_of("mute_music") else Color.WHITE))
 	u.view("version").set_text("v.1.7.61")
 	var mute := u.view("mute")
 	mute.set_src(Assets.drawable("@drawable/ic_menu_muteon" if Save.bool_of("mute") else "@drawable/ic_menu_muteoff"))
