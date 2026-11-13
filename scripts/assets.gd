@@ -175,6 +175,7 @@ func font(name: String) -> Font:
 	if has("fonts/" + name + ".ttf"):
 		var ff := FontFile.new()
 		ff.data = bytes_of("fonts/" + name + ".ttf")
+		ff.fallbacks = [ThemeDB.fallback_font]
 		f = ff
 	_fonts[name] = f
 	return f
