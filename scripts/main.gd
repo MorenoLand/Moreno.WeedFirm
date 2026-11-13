@@ -246,11 +246,29 @@ func uitest() -> void:
 	await get_tree().create_timer(0.8).timeout
 	check("desk button scrolls back", weed.scroll.x < 5)
 	ui.view("hint_slide").set_vis(2)
+	Save.put("watering_0", 5)
 	var s0 := Save.int_of("watering_0")
 	Save.put("selected_watering", "watering_0")
+	plants[0].set_state(1, Save.now())
+	plants[0].set_water(0, Save.now())
 	await click_view(plants[0].v("pot"))
 	await get_tree().create_timer(0.3).timeout
 	check("tap plant waters it", Save.int_of("watering_0") == s0 - 1 and plants[0].water == 2)
+	Save.put("desk_weed", 40)
+	Save.put("desk_cash", 40)
+	desk()
+	room_refresh()
+	await get_tree().process_frame
+	for pl in plants:
+		var pv: AView = pl.v("pot")
+		if pv.vis != 0: continue
+		var wh := ui.view("desk_weed_holder")
+		wh.xy = pv.get_global_position() - wh.get_parent().get_global_position() - Vector2(40, 40)
+		var pc := pv.get_global_rect().get_center()
+		await click_at(pc)
+		check("pot tap over the desk pile does not start a drag", drag == "")
+		drag = ""
+		ui.dragging = false
 	var pe := InputEventMouseButton.new()
 	pe.button_index = MOUSE_BUTTON_LEFT
 	pe.pressed = true
@@ -295,6 +313,18 @@ func uitest() -> void:
 	await click_view(owner_ref.v("btn_pissoff"))
 	await get_tree().create_timer(1.5).timeout
 	check("piss off button closes client", modal == 0)
+func _top_at(n: Node, p: Vector2) -> Control:
+	var kids := n.get_children()
+	kids.reverse()
+	for c in kids:
+		if c is Control and not c.visible: continue
+		var sub := _top_at(c, p)
+		if sub != null: return sub
+	if n is Control and n.visible and n.mouse_filter != Control.MOUSE_FILTER_IGNORE and n.get_global_rect().has_point(p): return n
+	return null
+func _drag_ok(holder: AView, p: Vector2) -> bool:
+	var t := _top_at(self, p)
+	return not (t is AView and t.clickable and t != holder and not holder.is_ancestor_of(t))
 func close_all() -> void:
 	for c in layer.get_children(): c.queue_free()
 	modal = 0
@@ -698,6 +728,11 @@ func onPhone(_v) -> void:
 func onSelectVinyl(_v) -> void: show_vinyl_box()
 func onBuyVinyl(_v) -> void: open_shop("vinyl")
 func _input(e: InputEvent) -> void:
+	if modal > 0 and drag != "":
+		drag = ""
+		ui.dragging = false
+		desk()
+		room_refresh()
 	if modal > 0 or root == null: return
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and e.pressed:
 		var inside := false
@@ -708,12 +743,12 @@ func _input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
 		if e.pressed:
 			var p: Vector2 = e.position
-			if ui.view("desk_cash_holder").visible and ui.view("desk_cash_holder").get_global_rect().has_point(p) and ui.view("desk_cash_holder").drawn_at(p) and Save.int_of("desk_cash") > 0: start_drag("cash", ui.view("desk_cash_holder"))
-			elif ui.view("desk_weed_holder").get_global_rect().has_point(p) and ui.view("desk_weed_holder").drawn_at(p) and Save.int_of("desk_weed") > 0: start_drag("weed", ui.view("desk_weed_holder"))
+			if ui.view("desk_cash_holder").visible and ui.view("desk_cash_holder").get_global_rect().has_point(p) and ui.view("desk_cash_holder").drawn_at(p) and _drag_ok(ui.view("desk_cash_holder"), p) and Save.int_of("desk_cash") > 0: start_drag("cash", ui.view("desk_cash_holder"))
+			elif ui.view("desk_weed_holder").get_global_rect().has_point(p) and ui.view("desk_weed_holder").drawn_at(p) and _drag_ok(ui.view("desk_weed_holder"), p) and Save.int_of("desk_weed") > 0: start_drag("weed", ui.view("desk_weed_holder"))
 			elif ui.view("vinyl_holder").vis == 0:
 				for i in 5:
 					var vb := ui.view("vinyl_%d" % i)
-					if vb.vis == 0 and vb.get_global_rect().has_point(p) and vb.drawn_at(p):
+					if vb.vis == 0 and vb.get_global_rect().has_point(p) and vb.drawn_at(p) and _drag_ok(vb, p):
 						start_drag("vinyl%d" % i, vb)
 						break
 			if drag != "": get_viewport().set_input_as_handled()
