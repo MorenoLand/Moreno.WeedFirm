@@ -11,6 +11,7 @@ func _init(game: Node) -> void:
 	g = game
 	var nm := "dealer_sw600dp"
 	d = g.dialog(nm if Assets.layout(nm) is Dictionary and Assets.layout(nm).has("tag") else "dealer")
+	d["w"].set_meta("owner", self)
 	ui = d["ui"]
 	Sfx.play("door_open")
 	var pick := ["mr_canabini", "big_roy"]

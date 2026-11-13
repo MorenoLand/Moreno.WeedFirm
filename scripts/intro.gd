@@ -9,6 +9,7 @@ func _init(game: Node, finished: Callable) -> void:
 	g = game
 	done = finished
 	d = g.dialog("comix_intro_sw600dp", false)
+	d["w"].set_meta("owner", self)
 	ui = d["ui"]
 	g.modal += 0
 	for id in ["comix_intro_0_mouth", "comix_intro_0_text", "comix_intro_0_expeled", "next_1", "play"]: ui.view(id).set_vis(2)

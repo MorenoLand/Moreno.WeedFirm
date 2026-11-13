@@ -7,6 +7,7 @@ func _init(game: Node, layout: String, sound: String, steps: Array, bonus: Array
 	g = game
 	var nm := layout + "_sw600dp"
 	d = g.dialog(nm if Assets.layout(nm) is Dictionary and Assets.layout(nm).has("tag") else layout, false)
+	d["w"].set_meta("owner", self)
 	ui = d["ui"]
 	Sfx.play(sound)
 	var back := ui.view("back")

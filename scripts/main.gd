@@ -160,13 +160,11 @@ func uitest() -> void:
 	open_client("mike")
 	await get_tree().create_timer(0.3).timeout
 	check("client dialog open", modal == 1)
-	Save.put("weed", 10)
-	var cdlg_cash := cash()
-	var btn: AView = null
-	for c in layer.get_children():
-		if c is AView and c.get_child_count() > 0:
-			btn = c.get_child(0).find_child("*", true, false)
-	await get_tree().create_timer(0.1).timeout
+	var owner_ref: ClientDlg = layer.get_child(layer.get_child_count() - 1).get_meta("owner", null)
+	check("dialog keeps its controller alive", owner_ref != null)
+	await click_view(owner_ref.v("btn_pissoff"))
+	await get_tree().create_timer(1.5).timeout
+	check("piss off button closes client", modal == 0)
 func close_all() -> void:
 	for c in layer.get_children(): c.queue_free()
 	modal = 0

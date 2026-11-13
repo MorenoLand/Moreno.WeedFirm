@@ -14,6 +14,7 @@ func _init(game: Node, client: String) -> void:
 	g = game
 	name = client
 	d = g.dialog("client_sw600dp" if Assets.layout("client_sw600dp") is Dictionary and Assets.layout("client_sw600dp").has("tag") else "client")
+	d["w"].set_meta("owner", self)
 	ui = d["ui"]
 	Sfx.play("door_open")
 	arr = Assets.arrays.get(name, [])

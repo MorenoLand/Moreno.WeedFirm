@@ -9,6 +9,7 @@ var rows := {}
 func _init(game: Node, first: String) -> void:
 	g = game
 	d = g.dialog("shop", false)
+	d["w"].set_meta("owner", self)
 	ui = d["ui"]
 	Sfx.play("bell")
 	ui.view("tab_7").set_vis(2)
