@@ -708,12 +708,12 @@ func _input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
 		if e.pressed:
 			var p: Vector2 = e.position
-			if ui.view("desk_cash_holder").visible and ui.view("desk_cash_holder").get_global_rect().has_point(p) and Save.int_of("desk_cash") > 0: start_drag("cash", ui.view("desk_cash_holder"))
-			elif ui.view("desk_weed_holder").get_global_rect().has_point(p) and Save.int_of("desk_weed") > 0: start_drag("weed", ui.view("desk_weed_holder"))
+			if ui.view("desk_cash_holder").visible and ui.view("desk_cash_holder").get_global_rect().has_point(p) and ui.view("desk_cash_holder").drawn_at(p) and Save.int_of("desk_cash") > 0: start_drag("cash", ui.view("desk_cash_holder"))
+			elif ui.view("desk_weed_holder").get_global_rect().has_point(p) and ui.view("desk_weed_holder").drawn_at(p) and Save.int_of("desk_weed") > 0: start_drag("weed", ui.view("desk_weed_holder"))
 			elif ui.view("vinyl_holder").vis == 0:
 				for i in 5:
 					var vb := ui.view("vinyl_%d" % i)
-					if vb.vis == 0 and vb.get_global_rect().has_point(p):
+					if vb.vis == 0 and vb.get_global_rect().has_point(p) and vb.drawn_at(p):
 						start_drag("vinyl%d" % i, vb)
 						break
 			if drag != "": get_viewport().set_input_as_handled()

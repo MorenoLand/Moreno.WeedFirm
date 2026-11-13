@@ -622,6 +622,21 @@ func opaque_at(p: Vector2) -> bool:
 		var inner := Rect2(Vector2(pd[0], pd[1]), size - Vector2(pd[0] + pd[2], pd[1] + pd[3]))
 		al = _alpha_in(src, inner, 1 if st == 1 else (6 if st == 6 else (3 if st == 3 or st == 7 else 0)), p)
 	return al > 0.05
+func drawn_at(gp: Vector2) -> bool:
+	if vis != 0 or not visible: return false
+	var p := get_global_transform().affine_inverse() * gp
+	if Rect2(Vector2.ZERO, size).has_point(p):
+		var r := Rect2(Vector2.ZERO, size)
+		var al := 0.0
+		if not bg.is_empty(): al = _alpha_in(bg, r, 1, p)
+		if al <= 0.05 and (kind == "ImageView" or kind == "ImageButton") and not src.is_empty():
+			var st := int(a.get("scaleType", 3 if kind == "ImageView" else 5))
+			var inner := Rect2(Vector2(pd[0], pd[1]), size - Vector2(pd[0] + pd[2], pd[1] + pd[3]))
+			al = _alpha_in(src, inner, 1 if st == 1 else (6 if st == 6 else (3 if st == 3 or st == 7 else 0)), p)
+		if al > 0.05: return true
+	for c in get_children():
+		if c is AView and c.drawn_at(gp): return true
+	return false
 func _has_point(p: Vector2) -> bool:
 	return Rect2(Vector2.ZERO, size).has_point(p) and opaque_at(p)
 func _gui_input(e: InputEvent) -> void:
