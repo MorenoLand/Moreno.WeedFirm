@@ -58,6 +58,7 @@ func _ready() -> void:
 	add_child(layer)
 	room = ui.view("room_scroll_view")
 	weed = ui.view("weed_scroll_view")
+	ui.view("weed_holder").mg[3] = -10.0 * Assets.DP
 	door_timer = _timer(knock)
 	phone_timer = _timer(phone_tick)
 	if Save.int_of("p_state_0", -3) == -3:
