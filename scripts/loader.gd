@@ -22,7 +22,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 28)
 	center.add_child(box)
 	info = Label.new()
-	info.text = "This client contains no game content. Provide your own copy of the free game APK and it stays on this device."
+	info.text = "This client contains no game content. Select your copy of the game APK. It stays on this device."
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_theme_font_size_override("font_size", 28)
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -44,6 +44,7 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		cb = JavaScriptBridge.create_callback(web_loaded)
 		JavaScriptBridge.get_interface("window").wfCallback = cb
+		fetch_bundle()
 	else:
 		var hint := Label.new()
 		hint.text = "You can also drop the file onto this window."
@@ -64,6 +65,36 @@ func _enter_tree() -> void:
 		await get_tree().create_timer(1.0).timeout
 		get_viewport().get_texture().get_image().save_png(shot)
 		get_tree().quit()
+var req: HTTPRequest
+func fetch_bundle() -> void:
+	var prompt := info.text
+	info.text = "Loading game data..."
+	btn.visible = false
+	req = HTTPRequest.new()
+	req.download_file = Assets.BUNDLE
+	add_child(req)
+	var url := str(JavaScriptBridge.eval("new URL('assets.zip', document.baseURI).href"))
+	if req.request(url) != OK:
+		info.text = prompt
+		btn.visible = true
+		return
+	var res: Array = await req.request_completed
+	var f := FileAccess.open(Assets.BUNDLE, FileAccess.READ)
+	var size := f.get_length() if f != null else 0
+	if f != null: f.close()
+	if res[1] == 200 and size > 1000000:
+		JavaScriptBridge.force_fs_sync()
+		Assets.reload()
+		if Assets.ok():
+			loaded.emit()
+			return
+	if FileAccess.file_exists(Assets.BUNDLE): DirAccess.remove_absolute(Assets.BUNDLE)
+	info.text = prompt
+	btn.visible = true
+func _process(_dt: float) -> void:
+	if req != null and is_instance_valid(req) and req.get_http_client_status() == HTTPClient.STATUS_BODY:
+		var tot := req.get_body_size()
+		if tot > 0: info.text = "Loading game data... %d%%" % int(100.0 * req.get_downloaded_bytes() / tot)
 func pick() -> void:
 	if busy: return
 	if OS.has_feature("web"): pick_web()

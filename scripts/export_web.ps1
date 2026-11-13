@@ -1,7 +1,8 @@
 param(
 	[Parameter(Mandatory = $true)][string]$Engine,
 	[Parameter(Mandatory = $true)][string]$Out,
-	[string]$Preset = "Web"
+	[string]$Preset = "Web",
+	[string]$Apk = ""
 )
 $ErrorActionPreference = "Stop"
 $project = Split-Path -Parent $PSScriptRoot
@@ -17,5 +18,11 @@ $target = Join-Path (Resolve-Path $Out) "index.html"
 & $Engine --headless --path $project --import | Out-Null
 & $Engine --headless --path $project --export-release $Preset $target
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $target)) { throw "Export failed (is the $Preset preset and the engine's web export template installed?)" }
+if ($Apk -ne "") {
+	$bundle = Join-Path (Resolve-Path $Out) "assets.zip"
+	& $Engine --headless --path $project --script res://scripts/extract_cli.gd -- (Resolve-Path $Apk).Path $bundle
+	if ($LASTEXITCODE -ne 0 -or -not (Test-Path $bundle)) { throw "Could not build the asset bundle from $Apk" }
+	Write-Host "Bundled game data into $bundle (local use only, do not publish)"
+}
 Write-Host "Exported to $Out"
-Get-ChildItem $Out -Filter "index.*" | ForEach-Object { "{0,12:N0}  {1}" -f $_.Length, $_.Name }
+Get-ChildItem $Out | Where-Object { $_.Name -like "index.*" -or $_.Name -eq "assets.zip" } | ForEach-Object { "{0,12:N0}  {1}" -f $_.Length, $_.Name }

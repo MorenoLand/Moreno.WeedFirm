@@ -16,7 +16,7 @@ Export presets for Web, Linux and Windows are included. With Redot or Godot expo
 
 The web build needs no special server headers (the server must send `.wasm` as `application/wasm`); serve the exported folder over HTTP.
 
-On Windows, `scripts/export_web.ps1 -Engine <engine folder or exe> -Out <folder to serve>` runs the web export into any folder, for example a local web server's document root.
+On Windows, `scripts/export_web.ps1 -Engine <engine folder or exe> -Out <folder to serve>` runs the web export into any folder, for example a local web server's document root. Add `-Apk <path to your APK>` to also write an `assets.zip` next to it: the page then downloads that bundle on first visit and starts with no APK step. That bundle contains the game's own files, so keep it for local use and never publish it.
 
 To unpack from the command line instead: `redot --headless --script scripts/extract_cli.gd -- path/to/game.apk`
 

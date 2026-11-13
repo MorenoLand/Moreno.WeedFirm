@@ -12,11 +12,17 @@ var _snd := {}
 var _fonts := {}
 func _ready() -> void: reload()
 const APK_CFG := "user://apk_path.txt"
+const BUNDLE := "user://assets_bundle.zip"
 var src: ApkLoader = null
+var bundle: ZIPReader = null
 func reload() -> void:
 	src = null
+	bundle = null
 	base = "res://assets_extracted/"
 	if FileAccess.file_exists("user://assets_extracted/strings.json"): base = "user://assets_extracted/"
+	elif FileAccess.file_exists(BUNDLE):
+		var z := ZIPReader.new()
+		if z.open(BUNDLE) == OK and z.file_exists("strings.json"): bundle = z
 	elif FileAccess.file_exists(APK_CFG):
 		var l := ApkLoader.new()
 		if l.open_index(FileAccess.get_file_as_string(APK_CFG).strip_edges()): src = l
@@ -30,8 +36,12 @@ func reload() -> void:
 	styles = jload("styles.json")
 	nine = jload("ninepatch.json")
 func ok() -> bool: return not strings.is_empty()
-func has(rel: String) -> bool: return src.has(rel) if src != null else FileAccess.file_exists(base + rel)
-func bytes_of(rel: String) -> PackedByteArray: return src.read_bytes(rel) if src != null else FileAccess.get_file_as_bytes(base + rel)
+func has(rel: String) -> bool:
+	if bundle != null: return bundle.file_exists(rel)
+	return src.has(rel) if src != null else FileAccess.file_exists(base + rel)
+func bytes_of(rel: String) -> PackedByteArray:
+	if bundle != null: return bundle.read_file(rel) if bundle.file_exists(rel) else PackedByteArray()
+	return src.read_bytes(rel) if src != null else FileAccess.get_file_as_bytes(base + rel)
 func use_apk(path: String) -> bool:
 	var l := ApkLoader.new()
 	if not l.open_index(path): return false
@@ -42,6 +52,9 @@ func use_apk(path: String) -> bool:
 	reload()
 	return ok()
 func jload(rel: String) -> Variant:
+	if bundle != null:
+		if not bundle.file_exists(rel): return {}
+		return JSON.parse_string(bundle.read_file(rel).get_string_from_utf8())
 	if src != null: return src.json(rel)
 	var t := FileAccess.get_file_as_string(base + rel)
 	return JSON.parse_string(t) if t != "" else {}

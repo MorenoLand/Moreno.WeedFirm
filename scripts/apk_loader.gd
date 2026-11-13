@@ -271,3 +271,24 @@ func extract(apk_path: String, progress: Callable = Callable()) -> bool:
 	for k in meta: put(k, meta[k])
 	zip.close()
 	return true
+func extract_zip(apk_path: String, zip_path: String) -> bool:
+	if not open_index(apk_path): return false
+	var pk := ZIPPacker.new()
+	if pk.open(zip_path) != OK: return false
+	for rel in files:
+		var data := read_bytes(rel)
+		pk.start_file(rel)
+		pk.write_file(data)
+		pk.close_file()
+		count += 1
+		if rel.ends_with(".png"):
+			var np: Variant = nine(data)
+			if np != null: patches[rel] = np
+	meta["ninepatch.json"] = patches
+	for k in meta:
+		pk.start_file(k)
+		pk.write_file(JSON.stringify(meta[k]).to_utf8_buffer())
+		pk.close_file()
+	pk.close()
+	zip.close()
+	return true
