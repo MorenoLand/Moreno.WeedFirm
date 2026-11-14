@@ -12,6 +12,7 @@ var mj_on := false
 var door_timer: Timer
 var phone_timer: Timer
 var drag := ""
+var dbg: DebugMenu
 var safe_open := false
 var drag_view: AView
 var last_client := ""
@@ -60,6 +61,8 @@ func _ready() -> void:
 	add_child(layer)
 	room = ui.view("room_scroll_view")
 	weed = ui.view("weed_scroll_view")
+	dbg = DebugMenu.new(self)
+	add_child(dbg)
 	ui.view("weed_holder").mg[3] = -16.0 * Assets.DP
 	var sf := ui.view("safe")
 	sf.xy.y = 399.0 * Assets.DP
@@ -121,6 +124,8 @@ func _ready() -> void:
 				"abduction": abduction()
 				"zombie": zombie_attack()
 				"pause": show_pause()
+				"newgame": confirm_newgame()
+				"debug": dbg.open()
 				"cash": show_cash()
 				"board": show_blackboard("a")
 				"popup": popup_item("daily_bonus")
@@ -274,6 +279,20 @@ func uitest() -> void:
 		check("pot tap over the desk pile does not start a drag", drag == "")
 		drag = ""
 		ui.dragging = false
+	var m0 := modal
+	var ke := InputEventKey.new()
+	ke.pressed = true
+	ke.ctrl_pressed = true
+	ke.shift_pressed = true
+	ke.keycode = KEY_BRACKETLEFT
+	_input(ke)
+	check("ctrl+shift+[ opens the debug menu", dbg.shown and modal == m0 + 1)
+	dbg.who.select(2)
+	dbg.spawn(true)
+	check("debug spawn puts a client at the door", door_client(0) == "ian" or door_client(1) == "ian" or door_client(2) == "ian")
+	for di in 3: if door_client(di) != "": door_clear(di)
+	_input(ke)
+	check("ctrl+shift+[ closes the debug menu", not dbg.shown and modal == m0)
 	Save.put("safe", true)
 	room_refresh()
 	await get_tree().process_frame
@@ -357,7 +376,7 @@ func _top_at(n: Node, p: Vector2) -> Control:
 	var kids := n.get_children()
 	kids.reverse()
 	for c in kids:
-		if c is Control and not c.visible: continue
+		if (c is Control or c is CanvasLayer) and not c.visible: continue
 		var sub := _top_at(c, p)
 		if sub != null: return sub
 	if n is Control and n.visible and n.mouse_filter != Control.MOUSE_FILTER_IGNORE and n.get_global_rect().has_point(p): return n
@@ -707,11 +726,16 @@ func knock() -> void:
 	var visits := Save.int_of("client_visits")
 	if door_client(i) != "":
 		var c := door_client(i)
-		if c == "alien" or c == "mr_malone" or c == "jesus_jhamal" or c == "zombie":
-			pass
+		var wait := {"alien": ["alien_last_visit", 5], "mr_malone": ["police_last_visit", 10], "jesus_jhamal": ["gangsters_last_visit", 10], "zombie": ["zombie_last_visit", 3]}
+		if wait.has(c) and visits - Save.int_of(wait[c][0]) < wait[c][1]: return
 		last_client = c
 		var b := ui.view("door_photo_%d" % i)
-		Anim.play(b, "door_photo_out", func(): door_clear(i))
+		Anim.play(b, "door_photo_out", func():
+			door_clear(i)
+			if c == "jesus_jhamal": burglary()
+			elif c == "mr_malone": raid()
+			elif c == "alien": abduction()
+			elif c == "zombie": zombie_attack())
 		Anim.play(ui.view("door_text_%d" % i), "door_text_out")
 		return
 	Save.put("client_visits", visits + 1)
@@ -733,13 +757,16 @@ func knock() -> void:
 		"jesus_jhamal":
 			ok = level() >= 3 and visits - Save.int_of("gangsters_last_visit") >= 40 and Save.int_of("desk_cash") >= 100
 			if ok: Save.put("gangsters_last_visit", visits)
+		"zombie":
+			ok = level() >= 4
+			if ok: Save.put("zombie_last_visit", visits)
 	if not ok: return
 	var snd := "knock_medium"
-	if c2 in ["ryan", "mike", "bob"]: snd = "knock_hard_1"
-	elif c2 in ["jane", "mary", "lucy", "sandy", "nancy", "goth", "ian"]: snd = "knock_soft"
+	if c2 in ["mike", "lee", "bob", "santa", "cupid"]: snd = "knock_hard_1"
+	elif c2 in ["jane", "mary", "lucy", "nancy", "sandy", "oldlady", "maid"]: snd = "knock_soft"
 	elif c2 == "mr_malone" or c2 == "jesus_jhamal": snd = "knock_hard_2"
 	elif c2 == "alien": snd = "knock_alien"
-	elif c2 == "santa" or c2 == "cupid": snd = "knock_hard_1"
+	elif c2 == "zombie": snd = "zombie_door"
 	Sfx.play(snd)
 	door_show(i, c2, true)
 func phone_schedule() -> void:
@@ -768,6 +795,10 @@ func onPhone(_v) -> void:
 func onSelectVinyl(_v) -> void: show_vinyl_box()
 func onBuyVinyl(_v) -> void: open_shop("vinyl")
 func _input(e: InputEvent) -> void:
+	if e is InputEventKey and e.pressed and not e.echo and e.ctrl_pressed and e.shift_pressed and (e.keycode == KEY_BRACKETLEFT or e.physical_keycode == KEY_BRACKETLEFT or e.keycode == KEY_BRACELEFT):
+		dbg.toggle()
+		get_viewport().set_input_as_handled()
+		return
 	if modal > 0 and drag != "":
 		drag = ""
 		ui.dragging = false
@@ -959,7 +990,6 @@ func apply_item(it: Array) -> void:
 	elif id.begins_with("vinyl"):
 		Save.put(id, Save.int_of(id) + 1)
 		L("vinyl")
-		L(id)
 func popup(error := "", ok := "", item: Array = [], bonus_key := "") -> void:
 	var dd := dialog("popup")
 	var u: Droid = dd["ui"]
@@ -1035,13 +1065,30 @@ func show_pause() -> void:
 		Sfx.refresh()
 		mute.set_src(Assets.drawable("@drawable/ic_menu_muteon" if Save.bool_of("mute") else "@drawable/ic_menu_muteoff")))
 	u.on("newgame", func(_v):
-		Save.d.clear()
-		Save.flush()
-		get_tree().reload_current_scene())
+		Sfx.play("tap")
+		confirm_newgame())
 	u.on("comics", func(_v):
 		Sfx.play("tap")
 		close_dialog(dd)
 		IntroDlg.new(self, Callable()))
+func confirm_newgame() -> void:
+	var dd := dialog("popup")
+	var u: Droid = dd["ui"]
+	u.view("error").set_vis(2)
+	u.view("item").set_vis(2)
+	u.view("ok").set_text(Assets.str_of("new_game_message"))
+	u.view("ok").set_vis(0)
+	var yes := u.view("back")
+	yes.set_text(Assets.str_of("ok"))
+	var no := AView.new()
+	no.setup("TextButton", yes.a.duplicate(), u)
+	no.set_text(Assets.str_of("cancel"))
+	yes.get_parent().add_child(no)
+	no.on(func(_v): close_dialog(dd))
+	u.on("back", func(_v):
+		Save.d.clear()
+		Save.flush()
+		get_tree().reload_current_scene())
 func burglary() -> void:
 	hide_far()
 	for p in plants: p.clear_menus()
