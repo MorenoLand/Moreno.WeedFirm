@@ -61,7 +61,7 @@ func _ready() -> void:
 	weed = ui.view("weed_scroll_view")
 	ui.view("weed_holder").mg[3] = -16.0 * Assets.DP
 	var sf := ui.view("safe")
-	sf.xy.y = 472.0 * Assets.DP - sf.img_size(Assets.drawable("@drawable/safe_close")).y
+	sf.xy.y = 399.0 * Assets.DP
 	door_timer = _timer(knock)
 	phone_timer = _timer(phone_tick)
 	if Save.int_of("p_state_0", -3) == -3:
