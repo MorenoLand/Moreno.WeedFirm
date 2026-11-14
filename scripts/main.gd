@@ -70,6 +70,9 @@ func _ready() -> void:
 		var fv := ui.view(it)
 		fv.xy.y = minf(fv.xy.y, 476.0 * Assets.DP - fv.img_size(Assets.drawable("@drawable/" + it)).y)
 	ui.view("phone").xy.y = 344.5 * Assets.DP
+	ui.view("vinyl_holder").xy.y = 329.0 * Assets.DP
+	ui.view("no_vinyl").xy.y = 405.0 * Assets.DP
+	ui.view("hint_box").xy.y = 435.0 * Assets.DP
 	ui.view("panties").xy.y -= 25.0 * Assets.DP
 	ui.view("painting").xy.y -= 45.0 * Assets.DP
 	var bx := ui.view("box")
