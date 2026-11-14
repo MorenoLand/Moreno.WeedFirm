@@ -16,6 +16,7 @@ func _init(game: Node, client: String) -> void:
 	d = g.dialog("client_sw600dp" if Assets.layout("client_sw600dp") is Dictionary and Assets.layout("client_sw600dp").has("tag") else "client")
 	d["w"].set_meta("owner", self)
 	ui = d["ui"]
+	Save.put("current_client", name)
 	Sfx.play("door_open")
 	arr = Assets.arrays.get(name, [])
 	ui.on("btn_pissoff", pissoff)
@@ -143,6 +144,7 @@ func hide(list: Array) -> void:
 func close() -> void:
 	if closed: return
 	closed = true
+	Save.remove("current_client")
 	g.close_dialog(d)
 	g.door_schedule()
 func pissoff(_btn) -> void:

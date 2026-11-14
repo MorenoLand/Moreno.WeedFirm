@@ -86,6 +86,7 @@ func _ready() -> void:
 	if not Save.bool_of("intro_showed") and OS.get_environment("WF_TEST") == "": IntroDlg.new(self, func(): Sfx.music("theme_instrumental"))
 	weed.set_scroll(Vector2(Save.int_of("current_scroll"), 0))
 	_weed_scrolled(weed)
+	if OS.get_environment("WF_BOT") == "" and OS.get_environment("WF_TEST") == "" and OS.get_environment("WF_UITEST") == "" and Save.str_of("current_client") != "": open_client(Save.str_of("current_client"))
 	if OS.get_environment("WF_BOT") != "":
 		await Bot.new(self).run(float(OS.get_environment("WF_BOT")))
 		get_tree().quit()
@@ -1042,6 +1043,7 @@ func show_pause() -> void:
 		close_dialog(dd)
 		IntroDlg.new(self, Callable()))
 func burglary() -> void:
+	hide_far()
 	for p in plants: p.clear_menus()
 	var lost_cash := Save.int_of("desk_cash")
 	var lost_weed := Save.int_of("desk_weed")
@@ -1056,8 +1058,9 @@ func burglary() -> void:
 	var y1: float = r0["tex"].get_height() * float(r0["scale"]) * 0.6 + 20.0
 	var y2: float = r1["tex"].get_height() * float(r1["scale"]) * 0.64 + 20.0 + y1
 	Comix.new(self, "comix_burglary", "burglary", [["comix_burglary_0", "t", -1600.0, 0.0, 1000.0, 1000.0], ["comix_burglary_1", "t", 1600.0, 0.0, 1000.0, 1500.0, y1], ["comix_burglary_2", "t", -1600.0, 0.0, 500.0, 2000.0, y2]], ["-%d cash" % lost_cash, "-%d weed" % lost_weed, ""], "pay")
+func hide_far() -> void: for i in 3: ui.view("door_photo_i_%d" % i).set_vis(2)
 func raid() -> void:
-	ui.view("door_photo_i_0").set_vis(2)
+	hide_far()
 	if Save.bool_of("panties"):
 		Save.put("panties", false)
 		L("use_panties")
@@ -1066,6 +1069,7 @@ func raid() -> void:
 	for p in plants: p.raid()
 	Comix.new(self, "comix_police", "police", [["comix_police_0", "t", 1600.0, 0.0, 1000.0, 1000.0], ["comix_police_1", "t", 1600.0, 0.0, 1000.0, 1500.0], ["comix_police_car", "t", -1600.0, 0.0, 500.0, 2000.0], ["comix_police_2", "t", 1600.0, 0.0, 500.0, 3000.0]], [], "")
 func abduction() -> void:
+	hide_far()
 	if Save.bool_of("painting"):
 		Save.put("painting", false)
 		room_refresh()
@@ -1075,6 +1079,7 @@ func abduction() -> void:
 	hud()
 	Comix.new(self, "comix_abduction", "abduction", [["comix_alien_0", "a", 0.0, 1.0, 1000.0, 800.0], ["comix_alien_1", "a", 0.0, 1.0, 1000.0, 2800.0], ["comix_alien_2", "a", 0.0, 1.0, 500.0, 5800.0]], ["", "", ""] if lost == 0 else ["-%d xp" % lost, "", ""], "alien")
 func zombie_attack() -> void:
+	hide_far()
 	for p in plants:
 		if p.state > -2:
 			p.raid()
