@@ -66,6 +66,8 @@ func _ready() -> void:
 	ui.view("weed_holder").mg[3] = -16.0 * Assets.DP
 	var sf := ui.view("safe")
 	sf.xy.y = 399.0 * Assets.DP
+	var bx := ui.view("box")
+	bx.xy.y = maxf(399.0 * Assets.DP, 472.0 * Assets.DP - bx.img_size(Assets.drawable("@drawable/box")).y)
 	door_timer = _timer(knock)
 	phone_timer = _timer(phone_tick)
 	if Save.int_of("p_state_0", -3) == -3:
