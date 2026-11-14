@@ -372,6 +372,12 @@ func uitest() -> void:
 		var t := _top_at(self, q)
 		if t == null or not (t == mjs or mjs.is_ancestor_of(t)): blocked = false
 	check("level complete overlay blocks everything behind it", blocked)
+	await get_tree().create_timer(12.0).timeout
+	Save.put("level", 3)
+	Save.put("xp", 0)
+	for qi in 4: m(int(ldata()[1]), 0, 0)
+	await get_tree().create_timer(5.0).timeout
+	check("several xp gains at the threshold level up exactly once", level() == 4)
 func _top_at(n: Node, p: Vector2) -> Control:
 	var kids := n.get_children()
 	kids.reverse()
@@ -516,7 +522,7 @@ func level_check() -> void:
 	if modal > 0:
 		after(2.0, level_check)
 		return
-	if level() == 17: return
+	if level() == 17 or xp() < int(ldata()[1]): return
 	Sfx.play("lighter")
 	Sfx.play("level_complete")
 	Save.put("level", level() + 1)
