@@ -133,7 +133,8 @@ func _ready() -> void:
 				"zombie": zombie_attack()
 				"pause": show_pause()
 				"newgame": confirm_newgame()
-				"debug": dbg.open()				"cash": show_cash()
+				"debug": dbg.open()
+				"cash": show_cash()
 				"board": show_blackboard("a")
 				"popup": popup_item("daily_bonus")
 				"dealer": open_dealer()
@@ -247,6 +248,8 @@ func click_at(p: Vector2) -> void:
 		await get_tree().process_frame
 func click_view(v: AView) -> void: await click_at(v.get_global_rect().get_center())
 func uitest() -> void:
+	DisplayServer.window_move_to_foreground()
+	get_window().grab_focus()
 	await get_tree().process_frame
 	await click_view(ui.view("btn_shop"))
 	await get_tree().create_timer(0.3).timeout
