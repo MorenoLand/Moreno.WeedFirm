@@ -66,6 +66,12 @@ func _ready() -> void:
 	ui.view("weed_holder").mg[3] = -16.0 * Assets.DP
 	var sf := ui.view("safe")
 	sf.xy.y = 399.0 * Assets.DP
+	for it in ["bong", "vaporizer", "sofa", "shotgun"]:
+		var fv := ui.view(it)
+		fv.xy.y = minf(fv.xy.y, 476.0 * Assets.DP - fv.img_size(Assets.drawable("@drawable/" + it)).y)
+	ui.view("phone").xy.y = 344.5 * Assets.DP
+	ui.view("panties").xy.y -= 25.0 * Assets.DP
+	ui.view("painting").xy.y -= 45.0 * Assets.DP
 	var bx := ui.view("box")
 	bx.xy.y = maxf(399.0 * Assets.DP, 472.0 * Assets.DP - bx.img_size(Assets.drawable("@drawable/box")).y)
 	door_timer = _timer(knock)
@@ -127,8 +133,7 @@ func _ready() -> void:
 				"zombie": zombie_attack()
 				"pause": show_pause()
 				"newgame": confirm_newgame()
-				"debug": dbg.open()
-				"cash": show_cash()
+				"debug": dbg.open()				"cash": show_cash()
 				"board": show_blackboard("a")
 				"popup": popup_item("daily_bonus")
 				"dealer": open_dealer()
