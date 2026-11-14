@@ -12,6 +12,7 @@ var mj_on := false
 var door_timer: Timer
 var phone_timer: Timer
 var drag := ""
+var safe_open := false
 var drag_view: AView
 var last_client := ""
 var chalk_c := ""
@@ -272,6 +273,33 @@ func uitest() -> void:
 		check("pot tap over the desk pile does not start a drag", drag == "")
 		drag = ""
 		ui.dragging = false
+	Save.put("safe", true)
+	room_refresh()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var sfv := ui.view("safe")
+	drag = "cash"
+	drag_view = ui.view("desk_cash_holder")
+	move_drag(sfv.get_global_rect().get_center())
+	check("dragging cash over the safe opens it", safe_open)
+	move_drag(Vector2(5, 5))
+	check("leaving the safe closes it", not safe_open)
+	drag = ""
+	Save.put("safe", false)
+	Save.put("player", true)
+	room_refresh()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	drag = "vinyl0"
+	ui.view("vinyl_").set_vis(0)
+	move_drag(ui.view("player").get_global_rect().get_center())
+	check("dragging a vinyl over the player spins it", ui.view("vinyl").vis == 0 and ui.view("vinyl_").vis == 2)
+	move_drag(Vector2(5, 5))
+	check("leaving the player stops the spin", ui.view("vinyl").vis == 2 and ui.view("vinyl_").vis == 0)
+	end_drag(Vector2(5, 5))
+	drag = ""
+	Save.put("player", false)
+	room_refresh()
 	var pe := InputEventMouseButton.new()
 	pe.button_index = MOUSE_BUTTON_LEFT
 	pe.pressed = true
@@ -742,6 +770,7 @@ func _input(e: InputEvent) -> void:
 	if modal > 0 and drag != "":
 		drag = ""
 		ui.dragging = false
+		safe_hover(false, false)
 		desk()
 		room_refresh()
 	if modal > 0 or mj_on or root == null: return
@@ -776,8 +805,16 @@ func start_drag(kind: String, v: AView) -> void:
 	if kind.begins_with("vinyl"): ui.view("vinyl_").set_vis(0)
 func room_pos(p: Vector2) -> Vector2:
 	return p + Vector2(room.scroll.x, 0) - ui.view("room_holder").get_global_position()
+func safe_hover(on: bool, snd := true) -> void:
+	if on == safe_open: return
+	safe_open = on
+	ui.view("safe").set_src(Assets.drawable("@drawable/safe_open" if on else "@drawable/safe_close"))
+	if snd: Sfx.play("safe_open" if on else "safe_close")
 func move_drag(p: Vector2) -> void:
 	var rp := room_pos(p)
+	if drag == "cash" or drag == "weed":
+		var sv := ui.view("safe")
+		safe_hover(sv.vis == 0 and sv.get_global_rect().has_point(p))
 	if drag == "cash":
 		drag_view.xy = rp - Vector2(50, 90) * Assets.DP
 		room._sort_all()
@@ -786,8 +823,21 @@ func move_drag(p: Vector2) -> void:
 		room._sort_all()
 	else:
 		var vv := ui.view("vinyl_")
+		var spin := ui.view("vinyl")
+		var pl := ui.view("player")
 		vv.xy = rp - Vector2(40, 80) * Assets.DP
 		room._sort_all()
+		if pl.vis == 0 and pl.get_global_rect().has_point(p):
+			if vv.vis == 0:
+				Sfx.play("vinyl")
+				spin.set_vis(0)
+				Anim.play(spin, "vinyl", Callable(), -1)
+			vv.set_vis(2)
+		else:
+			if spin.vis == 0:
+				Anim.stop(spin, false)
+				spin.set_vis(2)
+			vv.set_vis(0)
 func over(id: String, p: Vector2) -> bool:
 	var v := ui.view(id)
 	return v.vis == 0 and v.get_global_rect().grow(20).has_point(p)
@@ -795,6 +845,7 @@ func end_drag(p: Vector2) -> void:
 	var kind := drag
 	drag = ""
 	ui.dragging = false
+	safe_hover(false, false)
 	if kind == "cash" or kind == "weed":
 		if over("safe", p):
 			if kind == "cash":
@@ -816,6 +867,7 @@ func end_drag(p: Vector2) -> void:
 			ach("dj")
 			L("vinyl_%d" % i)
 		ui.view("vinyl_").set_vis(2)
+		Anim.stop(ui.view("vinyl"), false)
 		ui.view("vinyl").set_vis(2)
 		ui.view("vinyl_holder").set_vis(2)
 		ui.view("no_vinyl").set_vis(2)
